@@ -68,4 +68,5 @@ body{
     background: #70c5ce;
     border: 1px solid #000;
     display: block;
+    align-self: center;
 }

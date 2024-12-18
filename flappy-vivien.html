@@ -18,7 +18,7 @@
     </header>
     <main>
         <section>
-            <canvas id="gameCanvas" width="1000" height="600"></canvas>
+            <canvas id="gameCanvas" width="1200" height="600"></canvas>
         </section>
     </main>
 
@@ -26,23 +26,51 @@
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+        const vivienJump = new Image();
+        const vivienFall = new Image();
+        vivienJump.src = 'pictures/vivien-jump.png';
+        vivienFall.src = 'pictures/vivien-fall.png';
 
         const bird = {
             x: Math.floor(canvas.width/5) - 12,
             y: 500,
-            size: 25,
+            size: 70,
             gravity: 0.6,
             lift: -10,
             velocity: 0,
-            image: new Image(),  // Image de l'oiseau
-            init: function() {
-                this.image.src = 'pictures/flappybird.png';  // Charge l'image de l'oiseau
-            }
         };
 
         const pipes = [];
+        const week = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
+        const sizeCourse = [3,5];
+        const courses = {
+            TRE: {
+                color: "#ff93db",
+                name: "TD TRE 3MIC - CSH 113 33"
+            },
+            ELECTIF: {
+                color: "#ffa040",
+                name: "TD Cours Electifs - CSH 204(VP)"
+            },
+            BDD: {
+                color: "#9e9d40",
+                name: "TP Base de Données 2 I3MIBD10 - \nGEI 024A"
+            },
+            SE: {
+                color: "#8cffd9",
+                name: "CM Systèmes d'exploitation \nI3IMSI - Amphi 103 ()"
+            },
+            PROG: {
+                color: "#d9ff8c",
+                name: "TP Programmation web I3MIWBG - \nGEI 109B"
+            },
+            OPTI: {
+                color: "#ffd98c",
+                name: "TP Optimisation et programmation \nlineaire - SS14"
+            }
+        };
         const pipeWidth = (canvas.width/5);
-        const pipeGap = 140;
+        const pipeGap = 180;
         const groundHeight = 40;
         const groundSpeed = 4;
         let groundOffset = 0;
@@ -78,11 +106,14 @@
             ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
 
             ctx.strokeStyle = "black";
+            ctx.fillStyle = "black";
+            ctx.font = "1em Arial";
             for (let x = 0; x < canvas.width; x += canvas.width/5) {
                 ctx.beginPath();
                 ctx.moveTo(x, canvas.height);
                 ctx.lineTo(x, canvas.height - groundHeight);
                 ctx.stroke();
+                ctx.fillText(week[Math.floor(x/(canvas.width/5))], x + 50 , canvas.height - 15);
             }
             ctx.beginPath();
             ctx.moveTo(0, canvas.height - groundHeight);
@@ -91,17 +122,99 @@
         }
 
         function drawBird() {
-            ctx.fillStyle = "yellow";
-            ctx.fillRect(bird.x, bird.y, bird.size, bird.size);
-            ctx.drawImage(bird.image, bird.x, bird.y, bird.size, bird.size); // Dessine l'image de l'oiseau
+            if(bird.velocity < 0){
+                ctx.drawImage(vivienJump, bird.x, bird.y, bird.size, bird.size); // Dessine l'image de l'oiseau
+            } else {
+                ctx.drawImage(vivienFall, bird.x, bird.y, bird.size, bird.size); // Dessine l'image de l'oiseau
+            }
+        }
 
+          // Fonction pour dessiner un rectangle avec des coins arrondis
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y); // Début au coin supérieur gauche
+            ctx.lineTo(x + width - radius, y); // Ligne horizontale vers le coin supérieur droit
+            ctx.arcTo(x + width, y, x + width, y + height, radius); // Coin supérieur droit
+            ctx.lineTo(x + width, y + height - radius); // Ligne verticale vers le coin inférieur droit
+            ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius); // Coin inférieur droit
+            ctx.lineTo(x + radius, y + height); // Ligne horizontale vers le coin inférieur gauche
+            ctx.arcTo(x, y + height, x, y + height - radius, radius); // Coin inférieur gauche
+            ctx.lineTo(x, y + radius); // Ligne verticale vers le coin supérieur gauche
+            ctx.arcTo(x, y, x + radius, y, radius); // Coin supérieur gauche
+
+            ctx.closePath(); // Fermer le chemin
+            ctx.stroke(); // Dessiner les bords
+            ctx.fill(); // Remplir le rectangle
+        }
+
+        function generateSequence(targetSum) {
+            let sequenceGenerated = [];
+            while(targetSum != 0){
+                if(targetSum < 3){
+                    sequenceGenerated.push(targetSum);
+                } else if(targetSum > 4){
+                    sequenceGenerated.push(sizeCourse[Math.floor((Math.random() * 100)%2)]);
+                } else {
+                    sequenceGenerated.push(3);
+                }
+                targetSum -= sequenceGenerated[sequenceGenerated.length - 1];
+            }
+            return sequenceGenerated;
+        }
+
+        function getRandomCourse(dict) {
+            const keys = Object.keys(dict); // Obtenir toutes les clés
+            const randomKey = keys[Math.floor(Math.random() * keys.length)]; // Choisir une clé aléatoire
+            return dict[randomKey]; // Retourner l'objet correspondant à cette clé
+        }
+
+        function drawMultilineText(ctx, text, x, y, lineHeight) {
+            const lines = text.split("\n"); // Diviser le texte sur les retours à la ligne
+            lines.forEach((line, index) => {
+                ctx.fillText(line, x, y + index * lineHeight);
+            });
+        }
+
+        function drawCourse(x, course){
+            ctx.fillStyle = course.color;
+            drawRoundedRect(ctx, x, course.y + 1, pipeWidth, (course.size*20) - 1, 5);
+            ctx.fillStyle = "black";
+            ctx.font = "10px Arial";
+            drawMultilineText(ctx, course.text, x + 10, course.y + 15, 15);
+        }
+
+        function generateCourses(nbSegments, y){
+            let seqTop = generateSequence(nbSegments);
+            let positionY = y;
+            let coursesList = [];
+            for (let num of seqTop) {
+                let course = getRandomCourse(courses);
+                let currentCourse = {
+                    y: positionY,
+                    color: course.color,
+                    text: course.name,
+                    size: num
+                }
+                coursesList.push(currentCourse);
+                positionY += num*20;
+            }
+            return coursesList;
+        }
+
+
+        function drawCourses(x, courses){
+            courses.forEach(course => {
+                drawCourse(x, course);
+            });
         }
 
         function drawPipes() {
             ctx.fillStyle = "green";
             pipes.forEach(pipe => {
-                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
-                ctx.fillRect(pipe.x, canvas.height - groundHeight - pipe.bottom, pipeWidth, pipe.bottom);
+                drawCourses(pipe.x, pipe.topCoursesList);
+                drawCourses(pipe.x, pipe.botCoursesList);
+                //drawRoundedRect(ctx, pipe.x, 0, pipeWidth, pipe.top, 5);
+                //drawRoundedRect(ctx, pipe.x, canvas.height - groundHeight - pipe.bottom, pipeWidth, pipe.bottom, 5);
             });
         }
 
@@ -122,19 +235,54 @@
         function spawnPipe() {
             const topHeight = (Math.floor(Math.random()*((canvas.height - groundHeight - pipeGap - 60)/20))*20) + 20;
             const bottomHeight = canvas.height - groundHeight - topHeight - pipeGap;
+            const topCourses = generateCourses(topHeight/20, 0);
+            const botCourses = generateCourses(bottomHeight/20, topHeight + pipeGap);
             pipes.push({
                 x: canvas.width,
                 top: topHeight,
-                bottom: bottomHeight
+                bottom: bottomHeight,
+                topCoursesList: topCourses,
+                botCoursesList: botCourses
             });
         }
 
+        function clamp(min, max, value){
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function detectCollision(pipe, bird) {
+            // Coordonnées du cercle (oiseau)
+            let circleX = bird.x + bird.size / 2;
+            let circleY = bird.y + bird.size / 2;
+            let radius = bird.size / 2; // Le rayon du cercle
+
+            // Coordonnées et dimensions du rectangle (pipe)
+            let pipeX = pipe.x;
+            let pipeTopHeight = pipe.top;
+            let pipeBottomHeight = pipe.bottom;
+
+            // Trouver les bords du rectangle du tuyau
+            let closestX = clamp(pipeX, pipeX + pipeWidth, circleX); // La coordonnée X la plus proche du cercle
+            let closestYTop = clamp(0, pipeTopHeight, circleY); // La coordonnée Y la plus proche du cercle sur la partie supérieure
+            let closestYBottom = clamp(canvas.height - groundHeight - pipeBottomHeight, canvas.height - groundHeight, circleY); // La coordonnée Y la plus proche sur la partie inférieure
+
+            // Calculer la distance entre le centre du cercle et le point le plus proche du tuyau
+            let dx = circleX - closestX;
+            let dyTop = circleY - closestYTop;
+            let dyBottom = circleY - closestYBottom;
+
+            // Calculer les distances du centre du cercle vers le point le plus proche sur chaque partie du tuyau
+            let distanceTop = Math.sqrt(dx * dx + dyTop * dyTop); // Distance à la partie supérieure du tuyau
+            let distanceBottom = Math.sqrt(dx * dx + dyBottom * dyBottom); // Distance à la partie inférieure du tuyau
+
+            // Vérifier si l'une des deux distances est inférieure ou égale au rayon du cercle
+            return distanceTop <= radius || distanceBottom <= radius;
+        }
+
+
         function checkCollision() {
             pipes.forEach(pipe => {
-                if (
-                    bird.x < pipe.x + pipeWidth &&
-                    bird.x + bird.size > pipe.x &&
-                    (bird.y < pipe.top || bird.y + bird.size > canvas.height - groundHeight - pipe.bottom)
+                if (detectCollision(pipe, bird)
                 ) {
                     isGameOver = true;
                     drawGameOverScreen();
@@ -143,6 +291,7 @@
 
             if (bird.y + bird.size > canvas.height - groundHeight || bird.y < 0) {
                 isGameOver = true;
+                drawGameOverScreen();
             }
         }
 
@@ -173,19 +322,13 @@
 
         function updateScore(){
             pipes.forEach(pipe => {
-                if (pipe.x + 2 === bird.x) {
+                if (pipe.x + 4 === bird.x) {
                     score++;
                 }
             });
         }
 
         function gameLoop() {
-            if (isGameOver) {
-                drawGameOverScreen();
-                console.log('game over');
-                return;
-            }
-
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             bird.velocity += bird.gravity;
@@ -225,7 +368,6 @@
                 }
             }
         });
-
         startGame();
     </script>
 </body>
