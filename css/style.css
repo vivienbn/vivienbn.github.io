@@ -63,3 +63,9 @@ body{
     background-color: #165ba0;
     display: flex;
   }
+
+  canvas {
+    background: #70c5ce;
+    border: 1px solid #000;
+    display: block;
+}
