@@ -23,13 +23,18 @@
     </main>
 
 
-    <script>
+    <script type="module">
+        import * as Cookies from "./scripts/cookies.js";
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const vivienJump = new Image();
         const vivienFall = new Image();
+        const startScreen = new Image();
+        let personnalBest = 0;
+        let flashCount = 0;
         vivienJump.src = 'pictures/vivien-jump.png';
         vivienFall.src = 'pictures/vivien-fall.png';
+        startScreen.src = 'pictures/planex-jump.png';
 
         const bird = {
             x: Math.floor(canvas.width/5) - 12,
@@ -73,12 +78,12 @@
         const pipeGap = 180;
         const groundHeight = 40;
         const groundSpeed = 4;
-        let groundOffset = 0;
         let score = 0;
-        let isGameOver = false;
+        let isGameOver = true;
+        let deathAnimation = false;
 
          function drawBackground() {
-            ctx.fillStyle = "white";
+            ctx.fillStyle = "#F1F1F1";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.strokeStyle = "#ddd";
@@ -111,13 +116,13 @@
             for (let x = 0; x < canvas.width; x += canvas.width/5) {
                 ctx.beginPath();
                 ctx.moveTo(x, canvas.height);
-                ctx.lineTo(x, canvas.height - groundHeight);
+                ctx.lineTo(x, canvas.height - groundHeight + 1);
                 ctx.stroke();
                 ctx.fillText(week[Math.floor(x/(canvas.width/5))], x + 50 , canvas.height - 15);
             }
             ctx.beginPath();
             ctx.moveTo(0, canvas.height - groundHeight);
-            ctx.lineTo(canvas.width, canvas.height - groundHeight);
+            ctx.lineTo(canvas.width, canvas.height - groundHeight + 1);
             ctx.stroke();
         }
 
@@ -175,12 +180,32 @@
             });
         }
 
+        function drawTronkedLine(ctx, text, x, y){
+            const lines = text.split("\n");
+            const subline= lines[0].substring(0, lines[0].length - 4) + "...";
+            ctx.fillText(subline, x, y);
+        }
+
+        function refreshHighscore(){
+            personnalBest = Cookies.getOrCreateCookie("flappy-score", personnalBest, 365);
+            if(score > personnalBest){
+                personnalBest = score;
+                Cookies.setCookie("flappy-score", score, 365);
+                return true;
+            }
+            return false;
+        }
+
         function drawCourse(x, course){
             ctx.fillStyle = course.color;
             drawRoundedRect(ctx, x, course.y + 1, pipeWidth, (course.size*20) - 1, 5);
             ctx.fillStyle = "black";
             ctx.font = "10px Arial";
-            drawMultilineText(ctx, course.text, x + 10, course.y + 15, 15);
+            if(course.size < 2){
+                drawTronkedLine(ctx, course.text, x + 10, course.y + 15);
+            } else {
+                drawMultilineText(ctx, course.text, x + 10, course.y + 15, 15);
+            }
         }
 
         function generateCourses(nbSegments, y){
@@ -213,8 +238,6 @@
             pipes.forEach(pipe => {
                 drawCourses(pipe.x, pipe.topCoursesList);
                 drawCourses(pipe.x, pipe.botCoursesList);
-                //drawRoundedRect(ctx, pipe.x, 0, pipeWidth, pipe.top, 5);
-                //drawRoundedRect(ctx, pipe.x, canvas.height - groundHeight - pipe.bottom, pipeWidth, pipe.bottom, 5);
             });
         }
 
@@ -285,35 +308,49 @@
                 if (detectCollision(pipe, bird)
                 ) {
                     isGameOver = true;
-                    drawGameOverScreen();
+                    deathAnimation = true;
+                    onDeath();
+                    //drawGameOverScreen();
                 }
             });
 
             if (bird.y + bird.size > canvas.height - groundHeight || bird.y < 0) {
                 isGameOver = true;
-                drawGameOverScreen();
+                deathAnimation = true;
+                onDeath();
+                //drawGameOverScreen();
             }
         }
 
         function drawScore() {
             ctx.fillStyle = "black";
             ctx.font = "20px Arial";
-            ctx.fillText(`Score: ${score}`, 10, 20);
+            ctx.fillText(`Record: ${personnalBest}`, 10, 20);
+            ctx.fillText(`Score: ${score}`, 10, 40);
             ctx.fillStyle = "white";
         }
 
         function drawGameOverScreen() {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "white";
+            ctx.font = "50px Arial";
+            if(refreshHighscore()){
+                ctx.fillText("New Record !", canvas.width / 2 - 120, canvas.height / 2 - 150);
+            } else {
+                ctx.fillText("score", canvas.width / 2 - 60, canvas.height / 2 - 150);
+            }
+            ctx.font = "80px Arial";
+            ctx.fillText(`${score}`,canvas.width / 2 - 20, canvas.height / 2 - 10)
             ctx.font = "30px Arial";
-            ctx.fillText("Game Over", canvas.width / 2 - 80, canvas.height / 2);
+            ctx.fillText("Game Over", canvas.width / 2 - 80, canvas.height / 2 + 100);
             ctx.font = "20px Arial";
-            ctx.fillText("Press Space to Restart", canvas.width / 2 - 120, canvas.height / 2 + 40);
+            ctx.fillText("Press Space to Restart", canvas.width / 2 - 100, canvas.height / 2 + 140);
+            console.log(personnalBest);
         }
 
         function resetGame() {
-            bird.y = 300;
+            bird.y = 200;
             bird.velocity = 0;
             pipes.length = 0;
             score = 0;
@@ -329,20 +366,71 @@
         }
 
         function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
             bird.velocity += bird.gravity;
             bird.y += bird.velocity;
-
+            flashCount = 0;
             updatePipes();
             updateScore();
-
             drawBackground();
             drawGround();
             drawBird();
             drawPipes();
             checkCollision();
             drawScore();
+        }
+
+        function drawRotatedImage() {
+
+            // Déplacer le contexte du canvas au centre pour que la rotation soit autour du centre de l'image
+            ctx.translate(bird.x + bird.size/2, bird.y + bird.size/2 );
+
+            // Appliquer la rotation
+            ctx.rotate(rotation * Math.PI / 180); // Convertir l'angle en radians
+
+            // Dessiner l'image avec son coin supérieur gauche au centre (ajuster la position)
+            ctx.drawImage(vivienJump, 0, 0, bird.size, bird.size);
+
+            // Remettre le contexte au système de coordonnées d'origine pour éviter les rotations supplémentaires
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+
+        function drawStartScreen(){
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(startScreen, 0, 0, canvas.width, canvas.height); // Dessine l'image de l'oiseau
+        }
+
+        function animateDeath(){
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawGround();
+            drawPipes();
+            drawBird();
+            drawScore();
+            if(flashCount < 10){
+                flashCount++;
+                ctx.fillStyle = `rgba(255, 255, 255, ${flashCount/10})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            if(bird.y > canvas.height - groundHeight - 80){
+                deathAnimation = false;
+                console.log(bird.y, canvas.height);
+            }
+        }
+
+        function onDeath(){
+            bird.velocity = 0;
+            const intervalAnimation = setInterval(() => {
+                if (deathAnimation) {
+                    animateDeath();
+                    console.log('animation death en cours');
+                } else {
+                    clearInterval(intervalAnimation);
+                    console.log('animation death arret');
+                    drawGameOverScreen();
+                }
+            }, 20);
         }
 
         function startGame() {
@@ -359,16 +447,22 @@
             }, 2000);
         }
 
+        window.onload = () => {
+            personnalBest = Cookies.getOrCreateCookie("flappy-score", personnalBest, 365);
+            drawStartScreen();
+            startGame();
+        };
+
         window.addEventListener("keydown", (e) => {
             if (e.code === "Space") {
-                if (isGameOver) {
+                if (isGameOver && !deathAnimation) {
                     resetGame();
-                } else {
+                }
+                if(!isGameOver){
                     bird.velocity = bird.lift;
                 }
             }
         });
-        startGame();
     </script>
 </body>
 </html>
