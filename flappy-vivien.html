@@ -106,6 +106,14 @@
             }
         }
 
+        function shuffleSequence(sequence) {
+            for (let i = sequence.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1)); // Index aléatoire entre 0 et i
+                [sequence[i], sequence[j]] = [sequence[j], sequence[i]];  // Échange des éléments
+            }
+            return sequence;
+        }
+
         function drawGround() {
             ctx.fillStyle = "white";
             ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
@@ -164,7 +172,7 @@
                 }
                 targetSum -= sequenceGenerated[sequenceGenerated.length - 1];
             }
-            return sequenceGenerated;
+            return shuffleSequence(sequenceGenerated);
         }
 
         function getRandomCourse(dict) {
