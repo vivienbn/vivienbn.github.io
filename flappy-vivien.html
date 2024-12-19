@@ -465,7 +465,7 @@
             startGame();
         };
 
-        ctx.addEventListener("click", (e) => {
+        canvas.addEventListener("click", (e) => {
             if(isGameOver && !deathAnimation){
                 resetGame();
             }
