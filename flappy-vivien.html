@@ -522,6 +522,7 @@
             canvas.height = Math.floor((window.innerHeight / 1.5)/20)*20;
             pipeWidth = (canvas.width/5);
             bird.size = Math.max(MIN_BIRD_SIZE, Math.min(MAX_BIRD_SIZE, (canvas.width/100) * 7));
+            bird.x = Math.floor(canvas.width/5) - 12
             if(!gameStarted){
                 drawStartScreen();
             } else if (isGameOver && !deathAnimation){
