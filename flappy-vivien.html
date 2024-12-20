@@ -507,7 +507,7 @@
             startGame();
         };
 
-        canvas.addEventListener("click", (e) => {
+        canvas.addEventListener("touchstart", (e) => {
             if(isGameOver && !deathAnimation){
                 resetGame();
             }
@@ -515,6 +515,7 @@
                 bird.velocity = bird.lift;
             }
         });
+
 
         function resizeCanva(){
             canvas.width = (window.innerWidth / 1.5);
