@@ -40,7 +40,7 @@
 
         const bird = {
             x: Math.floor(canvas.width/5) - 12,
-            y: 500,
+            y: Math.floor(canvas.width/2) - 12,
             size: 70,
             gravity: 0.6,
             lift: -10,
@@ -399,7 +399,7 @@
         }
 
         function resetGame() {
-            bird.y = 200;
+            bird.y = Math.floor(canvas.width/2) - 12;
             bird.velocity = 0;
             pipes.length = 0;
             score = 0;
@@ -501,8 +501,9 @@
 
         window.onload = () => {
             personnalBest = Cookies.getOrCreateCookie("flappy-score", personnalBest, 365);
-            canvas.width = (window.innerWidth / 1.5);
-            canvas.height = Math.floor((window.innerHeight / 1.5)/20)*20;
+            resizeCanva();
+            // canvas.width = (window.innerWidth / 1.5);
+            // canvas.height = Math.floor((window.innerHeight / 1.5)/20)*20;
             drawStartScreen();
             startGame();
         };
