@@ -74,7 +74,7 @@
                 name: "TP Optimisation et programmation \nlineaire - SS14"
             }
         };
-        const pipeWidth = (canvas.width/5);
+        let pipeWidth = (canvas.width/5);
         const pipeGap = 180;
         const groundHeight = 40;
         const groundSpeed = 4;
@@ -269,6 +269,7 @@
             const topCourses = generateCourses(topHeight/20, 0);
             const botCourses = generateCourses(bottomHeight/20, topHeight + pipeGap);
             pipes.push({
+                scored: false,
                 x: canvas.width,
                 top: topHeight,
                 bottom: bottomHeight,
@@ -366,11 +367,12 @@
         }
 
         function updateScore(){
-            pipes.forEach(pipe => {
-                if (pipe.x + 4 === bird.x) {
+            if (pipes.length > 0){
+                if(pipes[0].x + (pipeWidth/2) < bird.x && pipes[0].scored == false){
+                    pipes[0].scored = true;
                     score++;
                 }
-            });
+            }
         }
 
         function gameLoop() {
@@ -432,10 +434,8 @@
             const intervalAnimation = setInterval(() => {
                 if (deathAnimation) {
                     animateDeath();
-                    console.log('animation death en cours');
                 } else {
                     clearInterval(intervalAnimation);
-                    console.log('animation death arret');
                     drawGameOverScreen();
                 }
             }, 20);
@@ -452,7 +452,8 @@
                 if (!isGameOver) {
                     if(pipes.length == 0){
                         spawnPipe();
-                    } else if(pipes[pipes.length - 1].x === (canvas.width/5)*3 ){
+                    } else if(pipes[pipes.length - 1].x < (canvas.width/5)*3 ){
+                        console.log("pipe spawn");
                         spawnPipe();
                     }
                 }
@@ -473,6 +474,13 @@
                 bird.velocity = bird.lift;
             }
         });
+
+        function resizeCanva(){
+            canvas.width = (window.innerWidth / 1.5);
+            pipeWidth = (canvas.width/5);
+        }
+
+        window.addEventListener("resize", resizeCanva);
 
         window.addEventListener("keydown", (e) => {
             if (e.code === "Space") {
