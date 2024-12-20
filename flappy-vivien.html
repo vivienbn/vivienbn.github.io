@@ -17,14 +17,16 @@
         </nav>
     </header>
     <main>
-        <section>
-            <canvas id="gameCanvas" width="1200" height="600"></canvas>
+        <section class="game_holder">
+            <canvas id="gameCanvas" width="1200" height="500"></canvas>
         </section>
     </main>
 
 
     <script type="module">
         import * as Cookies from "./scripts/cookies.js";
+        const MAX_BIRD_SIZE = 70;
+        const MIN_BIRD_SIZE = 40;
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const vivienJump = new Image();
@@ -80,6 +82,7 @@
         const groundSpeed = 4;
         let score = 0;
         let isGameOver = true;
+        let gameStarted = false;
         let deathAnimation = false;
 
          function drawBackground() {
@@ -108,13 +111,21 @@
 
         function shuffleSequence(sequence) {
             for (let i = sequence.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1)); // Index aléatoire entre 0 et i
-                [sequence[i], sequence[j]] = [sequence[j], sequence[i]];  // Échange des éléments
+                const j = Math.floor(Math.random() * (i + 1));
+                [sequence[i], sequence[j]] = [sequence[j], sequence[i]];
             }
             return sequence;
         }
 
+        function getCenterTextXPosition(xstart, size, text){
+            let textLenght = ctx.measureText(text).width;
+            let position = xstart + ((size - textLenght)/2);
+            return position;
+        }
+
         function drawGround() {
+            let day = "";
+            let position = 0;
             ctx.fillStyle = "white";
             ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
 
@@ -126,7 +137,9 @@
                 ctx.moveTo(x, canvas.height);
                 ctx.lineTo(x, canvas.height - groundHeight + 1);
                 ctx.stroke();
-                ctx.fillText(week[Math.floor(x/(canvas.width/5))], x + 50 , canvas.height - 15);
+                day = week[Math.floor(x/(canvas.width/5))];
+                position = getCenterTextXPosition(x, canvas.width/5, day);
+                ctx.fillText(day, position , canvas.height - 15);
             }
             ctx.beginPath();
             ctx.moveTo(0, canvas.height - groundHeight);
@@ -184,15 +197,40 @@
         function drawMultilineText(ctx, text, x, y, lineHeight) {
             const lines = text.split("\n"); // Diviser le texte sur les retours à la ligne
             lines.forEach((line, index) => {
-                ctx.fillText(line, x, y + index * lineHeight);
+                let textToDraw = tronkText(line, pipeWidth);
+                ctx.fillText(textToDraw, x, y + index * lineHeight);
             });
         }
 
         function drawTronkedLine(ctx, text, x, y){
             const lines = text.split("\n");
-            const subline= lines[0].substring(0, lines[0].length - 4) + "...";
-            ctx.fillText(subline, x, y);
+            const subline= lines[0].substring(0, lines[0].length);
+            ctx.fillText(tronkText(subline, pipeWidth), x, y);
         }
+
+        function tronkText(text, size){
+            let maxSize = size - 15;
+            let ellipsis = '...';
+            let ellipsisWidth = ctx.measureText(ellipsis).width;
+
+            if (ctx.measureText(text).width <= maxSize) {
+                return text;
+            }
+            
+            let currentText = '';
+            for (let i = 0; i < text.length; i++) {
+                const newText = currentText + text[i];
+                const measuredWidth = ctx.measureText(newText).width;
+
+                if (measuredWidth + ellipsisWidth > maxSize) {
+                    return currentText + ellipsis;
+                }
+                currentText = newText;
+            }
+            return currentText;
+        }
+
+
 
         function refreshHighscore(){
             personnalBest = Cookies.getOrCreateCookie("flappy-score", personnalBest, 365);
@@ -319,7 +357,6 @@
                     isGameOver = true;
                     deathAnimation = true;
                     onDeath();
-                    //drawGameOverScreen();
                 }
             });
 
@@ -327,7 +364,6 @@
                 isGameOver = true;
                 deathAnimation = true;
                 onDeath();
-                //drawGameOverScreen();
             }
         }
 
@@ -344,18 +380,22 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "white";
             ctx.font = "50px Arial";
+            let text = "";
             if(refreshHighscore()){
-                ctx.fillText("New Record !", canvas.width / 2 - 120, canvas.height / 2 - 150);
+                text = "New Record !"
             } else {
-                ctx.fillText("score", canvas.width / 2 - 60, canvas.height / 2 - 150);
+                text = "Score"
             }
+            ctx.fillText(text, getCenterTextXPosition(0, canvas.width, text), canvas.height / 2 - 150);
             ctx.font = "80px Arial";
-            ctx.fillText(`${score}`,canvas.width / 2 - 20, canvas.height / 2 - 10)
+            text = `${score}`;
+            ctx.fillText(text, getCenterTextXPosition(0, canvas.width, text), canvas.height / 2 - 10)
             ctx.font = "30px Arial";
-            ctx.fillText("Game Over", canvas.width / 2 - 80, canvas.height / 2 + 100);
+            text = "Game Over";
+            ctx.fillText(text, getCenterTextXPosition(0, canvas.width, text), canvas.height / 2 + 100);
             ctx.font = "20px Arial";
-            ctx.fillText("Press Space to Restart", canvas.width / 2 - 100, canvas.height / 2 + 140);
-            console.log(personnalBest);
+            text = "Press Space to Restart";
+            ctx.fillText(text, getCenterTextXPosition(0, canvas.width, text), canvas.height / 2 + 140);
         }
 
         function resetGame() {
@@ -425,7 +465,6 @@
             }
             if(bird.y > canvas.height - groundHeight - 80){
                 deathAnimation = false;
-                console.log(bird.y, canvas.height);
             }
         }
 
@@ -444,6 +483,7 @@
         function startGame() {
             setInterval(() => {
                 if (!isGameOver) {
+                    gameStarted = true;
                     gameLoop();
                 }
             }, 20);
@@ -453,7 +493,6 @@
                     if(pipes.length == 0){
                         spawnPipe();
                     } else if(pipes[pipes.length - 1].x < (canvas.width/5)*3 ){
-                        console.log("pipe spawn");
                         spawnPipe();
                     }
                 }
@@ -462,6 +501,8 @@
 
         window.onload = () => {
             personnalBest = Cookies.getOrCreateCookie("flappy-score", personnalBest, 365);
+            canvas.width = (window.innerWidth / 1.5);
+            canvas.height = Math.floor((window.innerHeight / 1.5)/20)*20;
             drawStartScreen();
             startGame();
         };
@@ -477,7 +518,18 @@
 
         function resizeCanva(){
             canvas.width = (window.innerWidth / 1.5);
+            canvas.height = Math.floor((window.innerHeight / 1.5)/20)*20;
             pipeWidth = (canvas.width/5);
+            bird.size = Math.max(MIN_BIRD_SIZE, Math.min(MAX_BIRD_SIZE, (canvas.width/100) * 7));
+            if(!gameStarted){
+                drawStartScreen();
+            } else if (isGameOver && !deathAnimation){
+                drawBackground();
+                drawGround();
+                drawPipes();
+                drawBird();
+                drawGameOverScreen();
+            } 
         }
 
         window.addEventListener("resize", resizeCanva);
