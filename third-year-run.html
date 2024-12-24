@@ -38,6 +38,27 @@
     const PLAYER_GROUNDED_0 = 350;
     const GROUND_LEVEL_1 = 301;
     const PLAYER_GROUNDED_1 = 300;
+    const GROUND_0_OBSTACLES = [];
+    const GROUND_0_BONUSES = [];
+    const GROUND_1_OBSTACLES = [];
+    const GROUND_1_BONUSES = [];
+    const OBSTACLE_SPEED = 4;
+    const OBSTACLE_TIMER = Date.now();
+
+    const BUFFERED_ACTION = {
+      NONE: 0,
+      JUMP: 1,
+      ROLL: 2,
+      MOVE_UP: 3,
+      MOVE_DOWN: 4
+    }
+
+    const PLACES = {
+      DOWN: 0,
+      UP: 1
+    }
+
+    let bufferActionState = BUFFERED_ACTION.NONE;
 
     const player = {
       x: 360,
@@ -61,6 +82,33 @@
       isMoving: false,
       isRolling: false
     };
+
+    function updateObstacles(speed){
+      if(GROUND_0_OBSTACLES.length == 0){
+        spawnObstacle();
+      }
+        GROUND_0_OBSTACLES.forEach(obstacle => {
+          obstacle.x -= speed*2.5;
+        });
+      if(GROUND_0_OBSTACLES[0].x < 0){
+            GROUND_0_OBSTACLES.shift();
+      }
+    }
+
+    function spawnObstacle(){
+      let obstacle = {
+        x: canvas.width,
+        y: GROUND_LEVEL_0,
+        size:50
+      }
+      GROUND_0_OBSTACLES.push(obstacle);
+    }
+
+    function drawObstacles(){
+      GROUND_0_OBSTACLES.forEach(obstacle => {
+        ctx.fillRect(obstacle.x, obstacle.y, obstacle.size, obstacle.size);
+      });
+    }
 
 
 
@@ -163,7 +211,7 @@
       return (player.size/proportion) - (player.size/(proportion*3)*(ground - player.y))/100
     }
 
-    function animateShadow(){
+    function animatePlayerShadow(){
       ctx.beginPath();
       if(!player.isMoving && !player.isJumping){
         if(player.place == 0){
@@ -209,7 +257,10 @@
         roll();
         animateRoll(speed);
       }
-      animateShadow();
+      if(bufferActionState != BUFFERED_ACTION.NONE){
+        checkBuffer();
+      }
+      animatePlayerShadow();
       ctx.drawImage(player.picture, player.x, player.y, player.size, player.size);
     }
 
@@ -222,6 +273,8 @@
       bg_elements.forEach(element => {
         if(element.speed === 4){
           animatePlayer(speed);
+          updateObstacles(speed);
+          drawObstacles();
         }
         ctx.drawImage(element.picture, element.x, 0, canvas.width, canvas.height);
         ctx.drawImage(element.picture, canvas.width + element.x - 1, 0, canvas.width, canvas.height);
@@ -242,14 +295,49 @@
           // Démarrer l'animation seulement lorsque toutes les images sont chargées
           if (loadedImages === bg_elements.length) {
             animateBackground(speed);
-            animatePlayer(speed);
           }
         };
       });
     }
 
+    function checkBuffer(){
+      if(actionAvaible()){
+        switch(bufferActionState){
+          case BUFFERED_ACTION.JUMP:
+            setJump();
+            break;
+          case BUFFERED_ACTION.ROLL:
+            setRoll();
+            break;
+          case BUFFERED_ACTION.MOVE_DOWN:
+            setMove(PLACES.DOWN);
+            break;
+          case BUFFERED_ACTION.MOVE_UP:
+            setMove(PLACES.UP);
+            break;
+        }
+        bufferActionState = BUFFERED_ACTION.NONE;
+      }
+    }
+
     function actionAvaible(){
       return !player.isJumping && !player.isMoving && !player.isRolling;
+    }
+
+    function setJump(){
+      player.velocity = player.lift;
+      player.jumping = true;
+      player.isJumping = true;
+    }
+
+    function setRoll(){
+      player.roll_timer = Date.now();
+      player.isRolling = true;
+    }
+
+    function setMove(place){
+      player.isMoving = true;
+      player.place = place;
     }
 
     setBgElements();
@@ -257,22 +345,33 @@
     
 
     window.addEventListener("keydown", (e) => {
-            if (e.which === 90 && actionAvaible()) {
-                    player.velocity = player.lift;
-                    player.jumping = true;
-                    player.isJumping = true;
+            if (e.which === 90) {
+              if(actionAvaible()){
+                setJump();
+              } else {
+                bufferActionState = BUFFERED_ACTION.JUMP;
+              }
             }
-            if (e.which === 83 && actionAvaible()) {
-              player.roll_timer = Date.now();
-              player.isRolling = true;
+            if (e.which === 83 ) {
+              if(actionAvaible()){
+                setRoll();
+              } else {
+                bufferActionState = BUFFERED_ACTION.ROLL;
+              }
             }
-            if(e.which === 68 && actionAvaible()  && player.place == 1){
-              player.isMoving = true;
-              player.place = 0;
+            if(e.which === 68 && player.place == PLACES.UP){
+              if(actionAvaible()){
+                setMove(PLACES.DOWN);
+              } else {
+                bufferActionState = BUFFERED_ACTION.MOVE_DOWN;
+              }
             }
-            if(e.which === 81 && actionAvaible() && player.place == 0){
-              player.isMoving = true;
-              player.place = 1;
+            if(e.which === 81 && player.place == PLACES.DOWN){
+              if(actionAvaible()){
+                setMove(PLACES.UP);
+              } else {
+                bufferActionState = BUFFERED_ACTION.MOVE_UP;
+              }
             }
         });
 
