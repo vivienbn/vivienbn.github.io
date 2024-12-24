@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link type="text/css" rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="header d-flex justify-content-between align-items-center">
+        <a href="index.html"><img src="./pictures/logo.png" class="h4 mb-0"> </a>
+        <nav>
+        <a href="flappy-vivien.html" class="nav-link d-inline-block">Flappy Vivien</a>
+        <a href="third-year-run.html" class="nav-link d-inline-block">Vivien Jump</a>
+        <a href="#contact" class="nav-link d-inline-block">Mathisnake</a>
+        </nav>
+    </header>
+    <main>
+        <section class="game_holder">
+            <canvas id="gameCanvas"></canvas>
+        </section>
+    </main>
+
+  <script>
+    // Configuration du canvas
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Taille du canvas
+    canvas.width = 1200;
+    canvas.height = 500;
+
+    const bg_path = ['pictures/bg_sun.png', 'pictures/bg_town.png', 'pictures/bg_clouds.png', 'pictures/bg_road.png', 'pictures/bg_front.png']
+    const bg_speeds = [0, 1, 2, 2.5, 4];
+    const bg_elements = [];
+    const GROUND_LEVEL = 350;
+    let test_timing = Date.now();
+
+    const player = {
+      x: 360,
+      y:318,
+      size: 32,
+      picture: new Image(),
+      frame: 0,
+      frame_timer: Date.now(),
+      lift: -6,
+      gravity: 0.2,
+      velocity: 0,
+      grounded: true
+    };
+
+    function setBgElements(){
+      for (let i = 0; i < bg_path.length; i ++) {
+        let element = {
+          picture: new Image(),
+          speed: bg_speeds[i],
+          x: 0
+        }
+        element.picture.src = bg_path[i];
+        bg_elements.push(element);
+      }
+    }
+
+    function changePlayerFrameRate(){}
+
+    function animatePlayer(speed){
+      player.y += player.velocity;
+      if(player.y < GROUND_LEVEL){
+        player.velocity += player.gravity;
+        player.grounded = false;
+      } else {
+        player.velocity = 0;
+        player.grounded = true;
+      }
+      if(player.frame == 0){
+        player.picture.src = './pictures/runner_1.png';
+      }
+      if(player.frame == 1){
+        player.picture.src = './pictures/runner_2.png';
+      }
+      ctx.drawImage(player.picture, player.x, player.y, player.size, player.size);
+    }
+
+    function isTimmingOver(start, duration){
+      return start + duration < Date.now();
+    }
+
+    function animateBackground(speed){
+      ctx.clearRect(0,0, canvas.width, canvas.height);
+      bg_elements.forEach(element => {
+        if(element.speed === 4){
+          if(!player.grounded){
+            player.frame = 0;
+          }
+          animatePlayer(speed);
+           if(isTimmingOver(player.frame_timer, 70/speed)){
+             player.frame = (player.frame + 1)%2;
+             player.frame_timer = Date.now();
+          }
+        }
+        ctx.drawImage(element.picture, element.x, 0, canvas.width, canvas.height);
+        ctx.drawImage(element.picture, canvas.width + element.x, 0, canvas.width, canvas.height);
+        element.x -= element.speed * speed;
+        if (element.x <= -canvas.width) {
+          element.x = 0;
+        }
+      });
+      requestAnimationFrame(() => animateBackground(speed));
+    }
+
+    function startAnimationWhenReady(speed) {
+      let loadedImages = 0;
+
+      bg_elements.forEach(element => {
+        element.picture.onload = () => {
+          loadedImages++;
+          // Démarrer l'animation seulement lorsque toutes les images sont chargées
+          if (loadedImages === bg_elements.length) {
+            animateBackground(speed);
+            animatePlayer(speed);
+          }
+        };
+      });
+    }
+
+    setBgElements();
+    startAnimationWhenReady(0.5);
+
+    window.addEventListener("keydown", (e) => {
+            if (e.code === "Space" && player.grounded) {
+                    player.velocity = player.lift;
+                    console.log('yoo');
+            }
+        });
+
+  </script>
+          <div class="footer d-flex flex-column justify-content-center align-items-center py-3">
+            <h6>Application Web réalisée par</h6>
+            <h6>BERNARD-NICOD Vivien</h6>
+            <h6>MORRA-FISCHER Mathis</h6>
+            <h6>&copy;2024 INSA Toulouse</h6>
+        </div>
+</body>
+</html>

@@ -12,7 +12,7 @@
         <a href="index.html"><img src="./pictures/logo.png" class="h4 mb-0"> </a>
         <nav>
         <a href="flappy-vivien.html" class="nav-link d-inline-block">Flappy Vivien</a>
-        <a href="#games" class="nav-link d-inline-block">Vivien Jump</a>
+        <a href="third-year-run.html" class="nav-link d-inline-block">Vivien Jump</a>
         <a href="#contact" class="nav-link d-inline-block">Mathisnake</a>
         </nav>
     </header>
@@ -446,7 +446,7 @@
 
         function drawStartScreen(){
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(startScreen, 0, 0, canvas.width, canvas.height); // Dessine l'image de l'oiseau
+            ctx.drawImage(startScreen, 0, 0, canvas.width, canvas.height);
         }
 
         function animateDeath(){
@@ -502,8 +502,6 @@
         window.onload = () => {
             personnalBest = Cookies.getOrCreateCookie("flappy-score", personnalBest, 365);
             resizeCanva();
-            // canvas.width = (window.innerWidth / 1.5);
-            // canvas.height = Math.floor((window.innerHeight / 1.5)/20)*20;
             drawStartScreen();
             startGame();
         };
@@ -548,5 +546,11 @@
             }
         });
     </script>
+            <div class="footer d-flex flex-column justify-content-center align-items-center py-3">
+                <h6>Application Web réalisée par</h6>
+                <h6>BERNARD-NICOD Vivien</h6>
+                <h6>MORRA-FISCHER Mathis</h6>
+                <h6>&copy;2024 INSA Toulouse</h6>
+            </div>
 </body>
 </html>
