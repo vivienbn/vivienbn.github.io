@@ -34,20 +34,29 @@
     const bg_path = ['pictures/bg_sun.png', 'pictures/bg_town.png', 'pictures/bg_clouds.png', 'pictures/bg_road.png', 'pictures/bg_front.png']
     const bg_speeds = [0, 1, 2, 2.5, 4];
     const bg_elements = [];
-    const GROUND_LEVEL = 350;
-    let test_timing = Date.now();
+    const GROUND_LEVEL_0 = 351;
+    const PLAYER_GROUNDED_0 = 350;
+    const GROUND_LEVEL_1 = 301;
+    const PLAYER_GROUNDED_1 = 300;
 
     const player = {
       x: 360,
-      y:318,
-      size: 32,
+      y:300,
+      size: 64,
       picture: new Image(),
       frame: 0,
       frame_timer: Date.now(),
+      move_timer: Date.now(),
       lift: -6,
       gravity: 0.2,
+      saccade: 0.01,
       velocity: 0,
-      grounded: true
+      place: 1,
+      moveSpeed: 4,
+      isJumping: false,
+      jumping: false,
+      moving: false,
+      isMoving: false
     };
 
     function setBgElements(){
@@ -64,20 +73,68 @@
 
     function changePlayerFrameRate(){}
 
-    function animatePlayer(speed){
-      player.y += player.velocity;
-      if(player.y < GROUND_LEVEL){
-        player.velocity += player.gravity;
-        player.grounded = false;
-      } else {
+
+    function jump(){
+      if(player.gravity > 0 && player.jumping){
+          player.gravity -= player.saccade;
+      } else if(player.gravity < 0.3 && !player.jumping){
+          player.gravity += player.saccade;
+      }
+      if(player.gravity < 0){
+          player.jumping = false;
+      }
+      if(player.place === 0 && player.y > GROUND_LEVEL_0){
+        player.isJumping = false;
         player.velocity = 0;
-        player.grounded = true;
+        player.y = PLAYER_GROUNDED_0;
+      }
+      if(player.place === 1 && player.y > GROUND_LEVEL_1){
+        player.isJumping = false;
+        player.velocity = 0;
+        player.y = PLAYER_GROUNDED_1;
+      }
+      player.velocity += player.gravity;
+      player.y += player.velocity;
+      console.log(player.gravity);  
+    }
+
+    function move(){
+      if(player.place == 0){
+        if(player.y < PLAYER_GROUNDED_0 && isTimmingOver(player.move_timer, 20)){
+          player.y += player.moveSpeed;
+          player.move_timer = Date.now();
+        }
+        if(player.y > PLAYER_GROUNDED_0){
+          player.y = PLAYER_GROUNDED_0;
+          player.isMoving = false
+        }
+      }
+      if(player.place == 1){
+        if(player.y > PLAYER_GROUNDED_1 && isTimmingOver(player.move_timer, 20)){
+          player.y -= player.moveSpeed;
+          player.move_timer = Date.now();
+        }
+        if(player.y < PLAYER_GROUNDED_1){
+          player.y = PLAYER_GROUNDED_1;
+          player.isMoving = false
+        }
+      }
+    }
+
+    function animatePlayer(speed){
+      if(player.isJumping && !player.isMoving){
+        jump();
+        console.log('player jumping');
+      }
+      if(player.isMoving && !player.isJumping){
+        move();
+        console.log('player moving');
       }
       if(player.frame == 0){
-        player.picture.src = './pictures/runner_1.png';
+        player.picture.src = './pictures/runner1.png';
       }
       if(player.frame == 1){
-        player.picture.src = './pictures/runner_2.png';
+        player.picture.src = './pictures/runner2.png';
       }
       ctx.drawImage(player.picture, player.x, player.y, player.size, player.size);
     }
@@ -90,17 +147,17 @@
       ctx.clearRect(0,0, canvas.width, canvas.height);
       bg_elements.forEach(element => {
         if(element.speed === 4){
-          if(!player.grounded){
+          if(player.isJumping){
             player.frame = 0;
           }
           animatePlayer(speed);
-           if(isTimmingOver(player.frame_timer, 70/speed)){
+           if(isTimmingOver(player.frame_timer, 60/speed)){
              player.frame = (player.frame + 1)%2;
              player.frame_timer = Date.now();
           }
         }
         ctx.drawImage(element.picture, element.x, 0, canvas.width, canvas.height);
-        ctx.drawImage(element.picture, canvas.width + element.x, 0, canvas.width, canvas.height);
+        ctx.drawImage(element.picture, canvas.width + element.x - 1, 0, canvas.width, canvas.height);
         element.x -= element.speed * speed;
         if (element.x <= -canvas.width) {
           element.x = 0;
@@ -124,13 +181,31 @@
       });
     }
 
+    function actionAvaible(){
+      return !player.isJumping && !player.isMoving;
+    }
+
     setBgElements();
     startAnimationWhenReady(0.5);
+    
 
     window.addEventListener("keydown", (e) => {
-            if (e.code === "Space" && player.grounded) {
+            if (e.which === 90 && actionAvaible()) {
                     player.velocity = player.lift;
+                    player.jumping = true;
+                    player.isJumping = true;
                     console.log('yoo');
+            }
+            if(e.which === 68 && actionAvaible()  && player.place == 1){
+              player.isMoving = true;
+              player.place = 0;
+              console.log(player.place);
+              console.log(player.isJumping);
+            }
+            if(e.which === 81 && actionAvaible() && player.place == 0){
+              player.isMoving = true;
+              player.place = 1;
+              console.log(player.place);
             }
         });
 
