@@ -47,7 +47,9 @@
       frame: 0,
       frame_timer: Date.now(),
       move_timer: Date.now(),
-      lift: -6,
+      roll_timer: Date.now(),
+      roll_delay: 400,
+      lift: -7,
       gravity: 0.2,
       saccade: 0.01,
       velocity: 0,
@@ -56,8 +58,11 @@
       isJumping: false,
       jumping: false,
       moving: false,
-      isMoving: false
+      isMoving: false,
+      isRolling: false
     };
+
+
 
     function setBgElements(){
       for (let i = 0; i < bg_path.length; i ++) {
@@ -95,7 +100,6 @@
       }
       player.velocity += player.gravity;
       player.y += player.velocity;
-      console.log(player.gravity);  
     }
 
     function move(){
@@ -121,20 +125,61 @@
       }
     }
 
+    function animateRun(speed){
+      if(isTimmingOver(player.frame_timer, 60/speed)){
+        player.frame_timer = Date.now();
+        if(player.frame == 0){
+          player.picture.src = './pictures/runner1.png';
+          player.frame = 1;
+        } else if(player.frame == 1){
+          player.picture.src = './pictures/runner2.png';
+          player.frame = 0;
+        }
+      }
+    }
+
+    function animateJump(){
+      player.picture.src = './pictures/runner3.png';
+    }
+
+    function animateRoll(speed){
+      console.log(player.frame);
+      if(isTimmingOver(player.frame_timer, 60/speed)){
+        player.frame_timer = Date.now();
+        if(player.frame == 0){
+          player.picture.src = './pictures/runner_roll1.png';
+          player.frame = 1;
+        } else if(player.frame == 1){
+          player.picture.src = './pictures/runner_roll2.png';
+          player.frame = 2;
+        } else if(player.frame == 2){
+          player.picture.src = './pictures/runner_roll3.png';
+          player.frame = 0;
+        }
+      }
+    }
+
+    function roll(){
+      if(isTimmingOver(player.roll_timer, player.roll_delay)){
+        player.isRolling = false;
+        player.frame = 0;
+      }
+    }
+
     function animatePlayer(speed){
+      if(!player.isJumping && !player.isRolling){
+        animateRun(speed);
+      }
       if(player.isJumping && !player.isMoving){
         jump();
-        console.log('player jumping');
+        animateJump();
       }
-      if(player.isMoving && !player.isJumping){
+      if(player.isMoving && !player.isJumping && !player.isRolling){
         move();
-        console.log('player moving');
       }
-      if(player.frame == 0){
-        player.picture.src = './pictures/runner1.png';
-      }
-      if(player.frame == 1){
-        player.picture.src = './pictures/runner2.png';
+      if(player.isRolling){
+        roll();
+        animateRoll(speed);
       }
       ctx.drawImage(player.picture, player.x, player.y, player.size, player.size);
     }
@@ -147,14 +192,7 @@
       ctx.clearRect(0,0, canvas.width, canvas.height);
       bg_elements.forEach(element => {
         if(element.speed === 4){
-          if(player.isJumping){
-            player.frame = 0;
-          }
           animatePlayer(speed);
-           if(isTimmingOver(player.frame_timer, 60/speed)){
-             player.frame = (player.frame + 1)%2;
-             player.frame_timer = Date.now();
-          }
         }
         ctx.drawImage(element.picture, element.x, 0, canvas.width, canvas.height);
         ctx.drawImage(element.picture, canvas.width + element.x - 1, 0, canvas.width, canvas.height);
@@ -182,11 +220,11 @@
     }
 
     function actionAvaible(){
-      return !player.isJumping && !player.isMoving;
+      return !player.isJumping && !player.isMoving && !player.isRolling;
     }
 
     setBgElements();
-    startAnimationWhenReady(0.5);
+    startAnimationWhenReady(0.7);
     
 
     window.addEventListener("keydown", (e) => {
@@ -194,18 +232,18 @@
                     player.velocity = player.lift;
                     player.jumping = true;
                     player.isJumping = true;
-                    console.log('yoo');
+            }
+            if (e.which === 83 && actionAvaible()) {
+              player.roll_timer = Date.now();
+              player.isRolling = true;
             }
             if(e.which === 68 && actionAvaible()  && player.place == 1){
               player.isMoving = true;
               player.place = 0;
-              console.log(player.place);
-              console.log(player.isJumping);
             }
             if(e.which === 81 && actionAvaible() && player.place == 0){
               player.isMoving = true;
               player.place = 1;
-              console.log(player.place);
             }
         });
 
