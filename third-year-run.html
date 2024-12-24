@@ -340,8 +340,11 @@
       player.place = place;
     }
 
-    setBgElements();
-    startAnimationWhenReady(0.7);
+    window.onload = (){
+      setBgElements();
+      startAnimationWhenReady(0.7);
+    }
+
     
 
     window.addEventListener("keydown", (e) => {
