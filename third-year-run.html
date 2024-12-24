@@ -159,6 +159,34 @@
       }
     }
 
+    function calculateRadius(proportion, ground){
+      return (player.size/proportion) - (player.size/(proportion*3)*(ground - player.y))/100
+    }
+
+    function animateShadow(){
+      ctx.beginPath();
+      if(!player.isMoving && !player.isJumping){
+        if(player.place == 0){
+        ctx.ellipse(player.x + (player.size/2), GROUND_LEVEL_0 + player.size, player.size/1.5, player.size/4.5, 0, 0, 2 * Math.PI);
+        }
+        if(player.place == 1){
+          ctx.ellipse(player.x + (player.size/2), GROUND_LEVEL_1 + player.size, player.size/1.5, player.size/4.5, 0, 0, 2 * Math.PI);
+        }
+      } else if(!player.isJumping){
+        ctx.ellipse(player.x + (player.size/2), player.y + player.size, player.size/1.5, player.size/4.5, 0, 0, 2 * Math.PI);
+      } else if(player.isJumping){
+        if(player.place == 0){
+        ctx.ellipse(player.x + (player.size/2), GROUND_LEVEL_0 + player.size, calculateRadius(1.5, GROUND_LEVEL_0), calculateRadius(4.5, GROUND_LEVEL_0), 0, 0, 2 * Math.PI);
+        console.log((player.size*(GROUND_LEVEL_0 - player.x))/100);
+        }
+        if(player.place == 1){
+          ctx.ellipse(player.x + (player.size/2), GROUND_LEVEL_1 + player.size,calculateRadius(1.5, GROUND_LEVEL_1), calculateRadius(4.5, GROUND_LEVEL_1), 0, 0, 2 * Math.PI);
+        }
+      }
+      ctx.fillStyle = "rgb(0,0,0,0.2)";
+      ctx.fill();
+    }
+
     function roll(){
       if(isTimmingOver(player.roll_timer, player.roll_delay)){
         player.isRolling = false;
@@ -181,6 +209,7 @@
         roll();
         animateRoll(speed);
       }
+      animateShadow();
       ctx.drawImage(player.picture, player.x, player.y, player.size, player.size);
     }
 
