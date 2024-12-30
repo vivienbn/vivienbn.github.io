@@ -42,6 +42,7 @@
     const GROUND_0_BONUSES = [];
     const GROUND_1_OBSTACLES = [];
     const GROUND_1_BONUSES = [];
+    const LETTERS = [];
     const OBSTACLE_SPEED = 4;
     const OBSTACLE_TIMER = Date.now();
 
@@ -51,16 +52,29 @@
       UP: 128
     }
 
+    const LETTER_STATE = {
+      MALUS: 0,
+      BONUS: 1
+    }
+
     const PLAYER_FRAMES = {
       ROLL: generateFrames('pictures/runner_roll', 3),
       RUN: generateFrames('pictures/runner', 2),
       JUMP: generateFrames('pictures/runner_jump', 2)
     }
 
-    const LETTERS_FRAMES = {
-      A: generateFrames('pictures/A_letter', 4),
+    const LETTERS_SRC = {
+      A: 'pictures/A_letter.png',
+
     }
 
+    const LETTER_FRAMES_COUNT = 4;
+
+    const LETTER_POSITION = {
+      LOW: -1,
+      MID: 0,
+      HIGH: 1
+    }
 
     const BUFFERED_ACTION = {
       NONE: 0,
@@ -75,9 +89,16 @@
       UP: 1
     }
 
-    const OBSTACLE_LENGHT = {
+    const OBSTACLE_DIM = {
       MIN: 1,
       MAX: 3
+    }
+
+    const FORCES = {
+      VELOCITY: 0,
+      GRAVITY:0.3,
+      SACCADE: 0.01,
+      LIFT: -7
     }
 
     let bufferActionState = BUFFERED_ACTION.NONE;
@@ -92,10 +113,10 @@
       move_timer: Date.now(),
       roll_timer: Date.now(),
       roll_delay: 400,
-      lift: -7,
-      gravity: 0.2,
-      saccade: 0.01,
-      velocity: 0,
+      lift: FORCES.LIFT,
+      gravity: FORCES.GRAVITY,
+      saccade: FORCES.SACCADE,
+      velocity: FORCES.VELOCITY,
       place: 1,
       moveSpeed: 4,
       isJumping: false,
@@ -109,15 +130,21 @@
       return Array.from({ length: frameCount }, (_, i) => `${basePath}${i + 1}.png`);
     }
 
+    function generateRandomNumber(lowValue, highValue){
+      let scale = highValue - lowValue;
+      let seed = Math.random();
+      return Math.round(lowValue + (scale*seed));
+    }
+
     function updateObstacles(speed){
-      if(GROUND_0_OBSTACLES.length == 0){
+      if(LETTERS.length == 0){
         spawnObstacle();
       }
-        GROUND_0_OBSTACLES.forEach(obstacle => {
+      LETTERS.forEach(obstacle => {
           obstacle.x -= speed*2.5;
         });
-      if(GROUND_0_OBSTACLES[0].x < 0){
-            GROUND_0_OBSTACLES.shift();
+      if(LETTERS[0].x < - 64){
+        LETTERS.shift();
       }
     }
 
@@ -129,46 +156,52 @@
         place: 1,
         frame: 0,
         flying_level: FLY_LEVEL.DOWN,
-        letters: LETTERS_FRAMES.A,
+        letter: LETTERS_SRC.A,
+        y_variation: LETTER_POSITION.MID,
+        frame_count: 0,
         frame_timer: Date.now(),
         picture: new Image()
       }
-      obstacle.picture.src = './pictures/A_letter.png';
+      obstacle.picture.src = './pictures/FX_letter.png';
+      LETTERS.push(obstacle);
+    }
 
-      let obstacle2 = {
-        x: canvas.width,
-        y: GROUND_LEVEL_1,
-        size: 64,
-        place: 1,
-        frame: 0,
-        flying_level: FLY_LEVEL.MID,
-        letters: LETTERS_FRAMES.A,
-        frame_timer: Date.now(),
-        picture: new Image()
+    function drawLayer(layer, speed){
+      if(player.place === layer){
+        animatePlayer(speed);
       }
-      obstacle2.picture.src = './pictures/A_letter.png';
-      GROUND_0_OBSTACLES.push(obstacle);
-      GROUND_0_OBSTACLES.push(obstacle2);
-    }
-
-    function drawObstacles(){
-      GROUND_0_OBSTACLES.forEach(obstacle => {
-        drawLetterShadow(obstacle);
+      LETTERS.forEach(letter => {
+        if(letter.place === layer){
+          drawLetterShadow(letter);
+        }
       });
-      GROUND_0_OBSTACLES.forEach(obstacle => {
-        animateLetter(obstacle, 4);
-        let y = obstacle.y - obstacle.flying_level;
-        ctx.drawImage(obstacle.picture, obstacle.x, y, obstacle.size, obstacle.size);
+      LETTERS.forEach(letter => {
+        if(letter.place === layer){
+          animateLetter(letter);
+          let y = (letter.y + letter.y_variation) - letter.flying_level;
+          ctx.drawImage(letter.picture, letter.x, y, letter.size, letter.size);
+        }
       });
     }
 
-    function animateLetter(letter, frames){
+    function animateLetter(letter){
       if(isTimmingOver(letter.frame_timer, 100)){
         letter.frame_timer = Date.now();
-        let current_frame = letter.frame;
-        let next_frame = (current_frame + 1)%frames;
-        letter.picture.src = letter.letters[current_frame];
-        letter.frame = next_frame;
+        switch(letter.frame_count){
+          case 0, 2:
+            letter.y_variation = LETTER_POSITION.MID;
+            break;
+          case 1:
+            letter.y_variation = LETTER_POSITION.HIGH;
+            break;
+          case 3:
+            letter.y_variation = LETTER_POSITION.LOW;
+            break;
+          default:
+            letter.y_variation = LETTER_POSITION.MID;
+            break;
+        }
+        letter.frame_count = (letter.frame_count + 1)%LETTER_FRAMES_COUNT;
       }
     }
 
@@ -190,20 +223,22 @@
     function jump(){
       if(player.gravity > 0 && player.jumping){
           player.gravity -= player.saccade;
-      } else if(player.gravity < 0.3 && !player.jumping){
+      } else if(player.gravity < FORCES.GRAVITY && !player.jumping){
           player.gravity += player.saccade;
       }
       if(player.gravity < 0){
           player.jumping = false;
       }
-      if(player.place === 0 && player.y > GROUND_LEVEL_0){
+      if(player.place === PLACES.DOWN && player.y > GROUND_LEVEL_0){
         player.isJumping = false;
-        player.velocity = 0;
+        player.velocity = FORCES.VELOCITY;
+        player.gravity = FORCES.GRAVITY;
         player.y = PLAYER_GROUNDED_0;
       }
-      if(player.place === 1 && player.y > GROUND_LEVEL_1){
+      if(player.place === PLACES.UP && player.y > GROUND_LEVEL_1){
         player.isJumping = false;
-        player.velocity = 0;
+        player.velocity = FORCES.VELOCITY;
+        player.gravity = FORCES.GRAVITY;
         player.y = PLAYER_GROUNDED_1;
       }
       player.velocity += player.gravity;
@@ -320,9 +355,9 @@
       ctx.clearRect(0,0, canvas.width, canvas.height);
       bg_elements.forEach(element => {
         if(element.speed === 4){
-          animatePlayer(speed);
           updateObstacles(speed);
-          drawObstacles();
+          drawLayer(PLACES.UP, speed);
+          drawLayer(PLACES.DOWN, speed);
         }
         ctx.drawImage(element.picture, element.x, 0, canvas.width, canvas.height);
         ctx.drawImage(element.picture, canvas.width + element.x - 1, 0, canvas.width, canvas.height);
