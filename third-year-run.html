@@ -45,6 +45,23 @@
     const OBSTACLE_SPEED = 4;
     const OBSTACLE_TIMER = Date.now();
 
+    const FLY_LEVEL = {
+      DOWN: 0,
+      MID: 64,
+      UP: 128
+    }
+
+    const PLAYER_FRAMES = {
+      ROLL: generateFrames('pictures/runner_roll', 3),
+      RUN: generateFrames('pictures/runner', 2),
+      JUMP: generateFrames('pictures/runner_jump', 2)
+    }
+
+    const LETTERS_FRAMES = {
+      A: generateFrames('pictures/A_letter', 4),
+    }
+
+
     const BUFFERED_ACTION = {
       NONE: 0,
       JUMP: 1,
@@ -56,6 +73,11 @@
     const PLACES = {
       DOWN: 0,
       UP: 1
+    }
+
+    const OBSTACLE_LENGHT = {
+      MIN: 1,
+      MAX: 3
     }
 
     let bufferActionState = BUFFERED_ACTION.NONE;
@@ -83,6 +105,10 @@
       isRolling: false
     };
 
+    function generateFrames(basePath, frameCount) {
+      return Array.from({ length: frameCount }, (_, i) => `${basePath}${i + 1}.png`);
+    }
+
     function updateObstacles(speed){
       if(GROUND_0_OBSTACLES.length == 0){
         spawnObstacle();
@@ -98,16 +124,52 @@
     function spawnObstacle(){
       let obstacle = {
         x: canvas.width,
-        y: GROUND_LEVEL_0,
-        size:50
+        y: GROUND_LEVEL_1,
+        size: 64,
+        place: 1,
+        frame: 0,
+        flying_level: FLY_LEVEL.DOWN,
+        letters: LETTERS_FRAMES.A,
+        frame_timer: Date.now(),
+        picture: new Image()
       }
+      obstacle.picture.src = './pictures/A_letter.png';
+
+      let obstacle2 = {
+        x: canvas.width,
+        y: GROUND_LEVEL_1,
+        size: 64,
+        place: 1,
+        frame: 0,
+        flying_level: FLY_LEVEL.MID,
+        letters: LETTERS_FRAMES.A,
+        frame_timer: Date.now(),
+        picture: new Image()
+      }
+      obstacle2.picture.src = './pictures/A_letter.png';
       GROUND_0_OBSTACLES.push(obstacle);
+      GROUND_0_OBSTACLES.push(obstacle2);
     }
 
     function drawObstacles(){
       GROUND_0_OBSTACLES.forEach(obstacle => {
-        ctx.fillRect(obstacle.x, obstacle.y, obstacle.size, obstacle.size);
+        drawLetterShadow(obstacle);
       });
+      GROUND_0_OBSTACLES.forEach(obstacle => {
+        animateLetter(obstacle, 4);
+        let y = obstacle.y - obstacle.flying_level;
+        ctx.drawImage(obstacle.picture, obstacle.x, y, obstacle.size, obstacle.size);
+      });
+    }
+
+    function animateLetter(letter, frames){
+      if(isTimmingOver(letter.frame_timer, 100)){
+        letter.frame_timer = Date.now();
+        let current_frame = letter.frame;
+        let next_frame = (current_frame + 1)%frames;
+        letter.picture.src = letter.letters[current_frame];
+        letter.frame = next_frame;
+      }
     }
 
 
@@ -123,8 +185,6 @@
         bg_elements.push(element);
       }
     }
-
-    function changePlayerFrameRate(){}
 
 
     function jump(){
@@ -173,42 +233,30 @@
       }
     }
 
-    function animateRun(speed){
+    function setPlayerFrame(speed, animation, frames){
       if(isTimmingOver(player.frame_timer, 60/speed)){
         player.frame_timer = Date.now();
-        if(player.frame == 0){
-          player.picture.src = './pictures/runner1.png';
-          player.frame = 1;
-        } else if(player.frame == 1){
-          player.picture.src = './pictures/runner2.png';
-          player.frame = 0;
-        }
-      }
-    }
-
-    function animateJump(){
-      player.picture.src = './pictures/runner3.png';
-    }
-
-    function animateRoll(speed){
-      console.log(player.frame);
-      if(isTimmingOver(player.frame_timer, 60/speed)){
-        player.frame_timer = Date.now();
-        if(player.frame == 0){
-          player.picture.src = './pictures/runner_roll1.png';
-          player.frame = 1;
-        } else if(player.frame == 1){
-          player.picture.src = './pictures/runner_roll2.png';
-          player.frame = 2;
-        } else if(player.frame == 2){
-          player.picture.src = './pictures/runner_roll3.png';
-          player.frame = 0;
-        }
+        let current_frame = player.frame;
+        let next_frame = (current_frame + 1)%frames;
+        player.picture.src = animation[current_frame];
+        player.frame = next_frame;
       }
     }
 
     function calculateRadius(proportion, ground){
       return (player.size/proportion) - (player.size/(proportion*3)*(ground - player.y))/100
+    }
+
+    function drawLetterShadow(letter){
+      ctx.beginPath();
+      if(letter.place == 0){
+        ctx.ellipse(letter.x + (letter.size/2), GROUND_LEVEL_0 + letter.size, letter.size/1.5, letter.size/4.5, 0, 0, 2 * Math.PI);
+      }
+      if(letter.place == 1){
+        ctx.ellipse(letter.x + (letter.size/2), GROUND_LEVEL_1 + letter.size, letter.size/1.5, letter.size/4.5, 0, 0, 2 * Math.PI);
+      }
+      ctx.fillStyle = "rgb(0,0,0,0.2)";
+      ctx.fill();
     }
 
     function animatePlayerShadow(){
@@ -244,18 +292,18 @@
 
     function animatePlayer(speed){
       if(!player.isJumping && !player.isRolling){
-        animateRun(speed);
+        setPlayerFrame(speed, PLAYER_FRAMES.RUN, 2);
       }
       if(player.isJumping && !player.isMoving){
         jump();
-        animateJump();
+        setPlayerFrame(speed, PLAYER_FRAMES.JUMP, 2);
       }
       if(player.isMoving && !player.isJumping && !player.isRolling){
         move();
       }
       if(player.isRolling){
         roll();
-        animateRoll(speed);
+        setPlayerFrame(speed, PLAYER_FRAMES.ROLL, 3);
       }
       if(bufferActionState != BUFFERED_ACTION.NONE){
         checkBuffer();
