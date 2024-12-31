@@ -31,30 +31,46 @@
     canvas.width = 1200;
     canvas.height = 500;
 
-    const bg_path = ['pictures/bg_sun.png', 'pictures/bg_town.png', 'pictures/bg_clouds.png', 'pictures/bg_road.png', 'pictures/bg_front.png']
-    const bg_speeds = [0, 1, 2, 2.5, 4];
-    const bg_elements = [];
-    const GROUND_LEVEL_0 = 351;
-    const PLAYER_GROUNDED_0 = 350;
-    const GROUND_LEVEL_1 = 301;
-    const PLAYER_GROUNDED_1 = 300;
-    const GROUND_0_OBSTACLES = [];
-    const GROUND_0_BONUSES = [];
-    const GROUND_1_OBSTACLES = [];
-    const GROUND_1_BONUSES = [];
-    const LETTERS = [];
-    const OBSTACLE_SPEED = 4;
-    const OBSTACLE_TIMER = Date.now();
+    const BACKGROUND_LAYERS = {
+        SUN: { speed: 0, name: 'sun', src: 'pictures/bg_sun.png'},
+        TOWN: { speed: 1, name: 'Town', src: 'pictures/bg_town.png'},
+        CLOUDS: { speed: 2, name: 'Clouds', src: 'pictures/bg_clouds.png'},
+        ROAD: { speed: 2.5, name: 'Road', src: 'pictures/bg_road.png'},
+        FRONT: { speed: 4, name: 'Front', src: 'pictures/bg_front.png'}
+    };
 
-    const FLY_LEVEL = {
-      DOWN: 0,
-      MID: 64,
-      UP: 128
+    const bg_elements = [];
+    const LETTERS = [];
+
+    const LETTER_DATA = {
+      SIZE: 64,
+      FRAMES: 4,
+      XINIT: canvas.width,
+      TYPE: {MALUS:0, BONUS:1}
     }
 
-    const LETTER_STATE = {
-      MALUS: 0,
-      BONUS: 1
+    const GROUND_LEVELS = {
+      UP: 300,
+      DOWN: 350
+    }
+
+    const GAME_SPEED = {
+      START: 0.8,
+      MAX: 2,
+      INCREMENT: 0.2,
+    }
+
+    const FLY_LEVEL = {
+      MIN: 0,
+      MAX: 180,
+      VARIATION: 60
+    }
+
+    const ANIMATION_DELAY = {
+      ROLL: 500,
+      PLAYER_FRAME: 60,
+      PLAYER_MOVE: 20,
+      LETTER_FRAME: 100,
     }
 
     const PLAYER_FRAMES = {
@@ -63,12 +79,18 @@
       JUMP: generateFrames('pictures/runner_jump', 2)
     }
 
-    const LETTERS_SRC = {
+    const BONUS_SRC = {
       A: 'pictures/A_letter.png',
-
+      B: 'pictures/B_letter.png',
+      C: 'pictures/C_letter.png',
+      D: 'pictures/D_letter.png',
+      E: 'pictures/E_letter.png',
     }
 
-    const LETTER_FRAMES_COUNT = 4;
+    const MALUS_SRC = {
+      F: 'pictures/F_letter.png',
+      FX: 'pictures/FX_letter.png'
+    }
 
     const LETTER_POSITION = {
       LOW: -1,
@@ -91,7 +113,8 @@
 
     const OBSTACLE_DIM = {
       MIN: 1,
-      MAX: 3
+      MAX: 3,
+      VARIATION: 1
     }
 
     const FORCES = {
@@ -112,7 +135,6 @@
       frame_timer: Date.now(),
       move_timer: Date.now(),
       roll_timer: Date.now(),
-      roll_delay: 400,
       lift: FORCES.LIFT,
       gravity: FORCES.GRAVITY,
       saccade: FORCES.SACCADE,
@@ -123,17 +145,24 @@
       jumping: false,
       moving: false,
       isMoving: false,
-      isRolling: false
+      isRolling: false,
     };
 
     function generateFrames(basePath, frameCount) {
       return Array.from({ length: frameCount }, (_, i) => `${basePath}${i + 1}.png`);
     }
 
-    function generateRandomNumber(lowValue, highValue){
-      let scale = highValue - lowValue;
+    function generateRandomNumber(lowValue, highValue, step){
+      let scale = (highValue - lowValue) / step;
       let seed = Math.random();
-      return Math.round(lowValue + (scale*seed));
+      let variation = Math.round(scale*seed);
+      return lowValue + (variation*step);
+    }
+
+    function getRandomObjectValue(object) {
+      const keys = Object.keys(object);
+      const randomKey = keys[Math.floor(Math.random() * keys.length)];
+      return object[randomKey];
     }
 
     function updateObstacles(speed){
@@ -146,24 +175,98 @@
       if(LETTERS[0].x < - 64){
         LETTERS.shift();
       }
+      for (let i = LETTERS.length - 1; i >= 0; i--) {
+        if (LETTERS[i].scored == true) {
+          LETTERS.splice(i, 1);
+        }
+      }
     }
 
     function spawnObstacle(){
-      let obstacle = {
+      let layer = getRandomObjectValue(PLACES);
+      let type = getRandomObjectValue(LETTER_DATA.TYPE);
+      let dim = 1;
+      spawnObstacleGroup(layer, type, dim, dim);
+    }
+
+    function getGroundLevel(position){
+      if(position === PLACES.UP){
+        return GROUND_LEVELS.UP;
+      }
+      return GROUND_LEVELS.DOWN;
+    }
+
+    function checkSquareCollision(square1, square2){
+      return(!(square1.y + square1.h < square2.y || square1.y > square2.y + square2.h || square1.x + square1.w < square2.x || square2.x + square2.w < square1.x));
+    }
+
+    function checkCollision(){
+      LETTERS.forEach(letter => {
+        if(letter.place === player.place && !player.isMoving){
+          if(checkSquareCollision(getPlayerHitbox(), getLetterHitbox(letter))){
+            letter.scored = true;
+          }
+        }
+      });
+    }
+
+    function getPlayerHitbox(){
+      let hitbox = {
+        x: player.x + 16,
+        y: player.y,
+        w: player.size/2,
+        h: player.size
+      }
+      if(player.isRolling){
+        hitbox.y = player.y + (player.size/2),
+        hitbox.h = player.size/2
+      }
+      return hitbox;
+    }
+
+    function getLetterHitbox(letter){
+      let hitbox = {
+        x:letter.x,
+        y:letter.y - letter.flying_level,
+        w:letter.size,
+        h:letter.size
+      }
+      return hitbox;
+    }
+
+    function generateLetter(layer, type, flyLevel){
+      let letter = {
         x: canvas.width,
-        y: GROUND_LEVEL_1,
-        size: 64,
-        place: 1,
+        y: getGroundLevel(layer),
+        size: LETTER_DATA.SIZE,
+        place: layer,
+        type: type,
         frame: 0,
-        flying_level: FLY_LEVEL.DOWN,
-        letter: LETTERS_SRC.A,
+        flying_level: flyLevel,
         y_variation: LETTER_POSITION.MID,
         frame_count: 0,
         frame_timer: Date.now(),
-        picture: new Image()
+        picture: new Image(),
+        scored: false
+      };
+      if(type === LETTER_DATA.TYPE.BONUS){
+        letter.picture.src = getRandomObjectValue(BONUS_SRC);
+        console.log('bonus');
       }
-      obstacle.picture.src = './pictures/FX_letter.png';
-      LETTERS.push(obstacle);
+      if(type === LETTER_DATA.TYPE.MALUS){
+        letter.picture.src = getRandomObjectValue(MALUS_SRC);
+        console.log('malus');
+      }
+      console.log(letter.picture.src);
+      return letter;
+    }
+
+    function spawnObstacleGroup(layer, type, height, width){
+      let dim = height * width;
+      if(dim == 1){
+        let flylevel = generateRandomNumber(FLY_LEVEL.MIN, FLY_LEVEL.MAX, FLY_LEVEL.VARIATION);
+        LETTERS.push(generateLetter(layer, type, flylevel));
+      }
     }
 
     function drawLayer(layer, speed){
@@ -185,7 +288,7 @@
     }
 
     function animateLetter(letter){
-      if(isTimmingOver(letter.frame_timer, 100)){
+      if(isTimmingOver(letter.frame_timer, ANIMATION_DELAY.LETTER_FRAME)){
         letter.frame_timer = Date.now();
         switch(letter.frame_count){
           case 0, 2:
@@ -201,23 +304,28 @@
             letter.y_variation = LETTER_POSITION.MID;
             break;
         }
-        letter.frame_count = (letter.frame_count + 1)%LETTER_FRAMES_COUNT;
+        letter.frame_count = (letter.frame_count + 1)%LETTER_DATA.FRAMES;
       }
     }
 
 
 
-    function setBgElements(){
-      for (let i = 0; i < bg_path.length; i ++) {
+    function setBgElements() {
+      for (let key in BACKGROUND_LAYERS) {
+        let layer = BACKGROUND_LAYERS[key];
         let element = {
           picture: new Image(),
-          speed: bg_speeds[i],
+          speed: layer.speed,
+          name: layer.name,
           x: 0
-        }
-        element.picture.src = bg_path[i];
+        };
+        element.picture.src = layer.src;
         bg_elements.push(element);
       }
     }
+
+
+
 
 
     function jump(){
@@ -229,17 +337,17 @@
       if(player.gravity < 0){
           player.jumping = false;
       }
-      if(player.place === PLACES.DOWN && player.y > GROUND_LEVEL_0){
+      if(player.place === PLACES.DOWN && player.y > GROUND_LEVELS.DOWN){
         player.isJumping = false;
         player.velocity = FORCES.VELOCITY;
         player.gravity = FORCES.GRAVITY;
-        player.y = PLAYER_GROUNDED_0;
+        player.y = GROUND_LEVELS.DOWN - 1;
       }
-      if(player.place === PLACES.UP && player.y > GROUND_LEVEL_1){
+      if(player.place === PLACES.UP && player.y > GROUND_LEVELS.UP){
         player.isJumping = false;
         player.velocity = FORCES.VELOCITY;
         player.gravity = FORCES.GRAVITY;
-        player.y = PLAYER_GROUNDED_1;
+        player.y = GROUND_LEVELS.UP - 1;
       }
       player.velocity += player.gravity;
       player.y += player.velocity;
@@ -247,29 +355,29 @@
 
     function move(){
       if(player.place == 0){
-        if(player.y < PLAYER_GROUNDED_0 && isTimmingOver(player.move_timer, 20)){
+        if(player.y < GROUND_LEVELS.DOWN && isTimmingOver(player.move_timer, ANIMATION_DELAY.PLAYER_MOVE)){
           player.y += player.moveSpeed;
           player.move_timer = Date.now();
         }
-        if(player.y > PLAYER_GROUNDED_0){
-          player.y = PLAYER_GROUNDED_0;
+        if(player.y > GROUND_LEVELS.DOWN){
+          player.y = GROUND_LEVELS.DOWN;
           player.isMoving = false
         }
       }
       if(player.place == 1){
-        if(player.y > PLAYER_GROUNDED_1 && isTimmingOver(player.move_timer, 20)){
+        if(player.y > GROUND_LEVELS.UP && isTimmingOver(player.move_timer, ANIMATION_DELAY.PLAYER_MOVE)){
           player.y -= player.moveSpeed;
           player.move_timer = Date.now();
         }
-        if(player.y < PLAYER_GROUNDED_1){
-          player.y = PLAYER_GROUNDED_1;
+        if(player.y < GROUND_LEVELS.UP){
+          player.y = GROUND_LEVELS.UP;
           player.isMoving = false
         }
       }
     }
 
     function setPlayerFrame(speed, animation, frames){
-      if(isTimmingOver(player.frame_timer, 60/speed)){
+      if(isTimmingOver(player.frame_timer, ANIMATION_DELAY.PLAYER_FRAME/speed)){
         player.frame_timer = Date.now();
         let current_frame = player.frame;
         let next_frame = (current_frame + 1)%frames;
@@ -285,10 +393,10 @@
     function drawLetterShadow(letter){
       ctx.beginPath();
       if(letter.place == 0){
-        ctx.ellipse(letter.x + (letter.size/2), GROUND_LEVEL_0 + letter.size, letter.size/1.5, letter.size/4.5, 0, 0, 2 * Math.PI);
+        ctx.ellipse(letter.x + (letter.size/2), GROUND_LEVELS.DOWN + letter.size, letter.size/1.5, letter.size/4.5, 0, 0, 2 * Math.PI);
       }
       if(letter.place == 1){
-        ctx.ellipse(letter.x + (letter.size/2), GROUND_LEVEL_1 + letter.size, letter.size/1.5, letter.size/4.5, 0, 0, 2 * Math.PI);
+        ctx.ellipse(letter.x + (letter.size/2), GROUND_LEVELS.UP + letter.size, letter.size/1.5, letter.size/4.5, 0, 0, 2 * Math.PI);
       }
       ctx.fillStyle = "rgb(0,0,0,0.2)";
       ctx.fill();
@@ -298,20 +406,20 @@
       ctx.beginPath();
       if(!player.isMoving && !player.isJumping){
         if(player.place == 0){
-        ctx.ellipse(player.x + (player.size/2), GROUND_LEVEL_0 + player.size, player.size/1.5, player.size/4.5, 0, 0, 2 * Math.PI);
+        ctx.ellipse(player.x + (player.size/2), GROUND_LEVELS.DOWN + player.size, player.size/1.5, player.size/4.5, 0, 0, 2 * Math.PI);
         }
         if(player.place == 1){
-          ctx.ellipse(player.x + (player.size/2), GROUND_LEVEL_1 + player.size, player.size/1.5, player.size/4.5, 0, 0, 2 * Math.PI);
+          ctx.ellipse(player.x + (player.size/2), GROUND_LEVELS.UP + player.size, player.size/1.5, player.size/4.5, 0, 0, 2 * Math.PI);
         }
       } else if(!player.isJumping){
         ctx.ellipse(player.x + (player.size/2), player.y + player.size, player.size/1.5, player.size/4.5, 0, 0, 2 * Math.PI);
       } else if(player.isJumping){
         if(player.place == 0){
-        ctx.ellipse(player.x + (player.size/2), GROUND_LEVEL_0 + player.size, calculateRadius(1.5, GROUND_LEVEL_0), calculateRadius(4.5, GROUND_LEVEL_0), 0, 0, 2 * Math.PI);
-        console.log((player.size*(GROUND_LEVEL_0 - player.x))/100);
+        ctx.ellipse(player.x + (player.size/2), GROUND_LEVELS.DOWN + player.size, calculateRadius(1.5, GROUND_LEVELS.DOWN), calculateRadius(4.5, GROUND_LEVELS.DOWN), 0, 0, 2 * Math.PI);
+        console.log((player.size*(GROUND_LEVELS.DOWN - player.x))/100);
         }
         if(player.place == 1){
-          ctx.ellipse(player.x + (player.size/2), GROUND_LEVEL_1 + player.size,calculateRadius(1.5, GROUND_LEVEL_1), calculateRadius(4.5, GROUND_LEVEL_1), 0, 0, 2 * Math.PI);
+          ctx.ellipse(player.x + (player.size/2), GROUND_LEVELS.UP + player.size,calculateRadius(1.5, GROUND_LEVELS.UP), calculateRadius(4.5, GROUND_LEVELS.UP), 0, 0, 2 * Math.PI);
         }
       }
       ctx.fillStyle = "rgb(0,0,0,0.2)";
@@ -319,7 +427,7 @@
     }
 
     function roll(){
-      if(isTimmingOver(player.roll_timer, player.roll_delay)){
+      if(isTimmingOver(player.roll_timer, ANIMATION_DELAY.ROLL)){
         player.isRolling = false;
         player.frame = 0;
       }
@@ -354,7 +462,7 @@
     function animateBackground(speed){
       ctx.clearRect(0,0, canvas.width, canvas.height);
       bg_elements.forEach(element => {
-        if(element.speed === 4){
+        if(element.name === BACKGROUND_LAYERS.FRONT.name){
           updateObstacles(speed);
           drawLayer(PLACES.UP, speed);
           drawLayer(PLACES.DOWN, speed);
@@ -366,6 +474,7 @@
           element.x = 0;
         }
       });
+      checkCollision();
       requestAnimationFrame(() => animateBackground(speed));
     }
 
@@ -425,7 +534,7 @@
 
     window.onload = ()=> {
       setBgElements();
-      startAnimationWhenReady(0.7);
+      startAnimationWhenReady(GAME_SPEED.START);
     }
 
     
