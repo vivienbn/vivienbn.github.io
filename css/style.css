@@ -4,75 +4,74 @@
 }
 
 body{
-    background-color: #0c486c;
-  }
+  background-color: #0c486c;
+}
 
 .card-img-top {
-    width: 100%;
-    height: 300px;
-    object-fit: cover;
-  }
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+}
 
-  .card-container{
-    align-items: center;
-  }
+.card-container{
+  align-items: center;
+}
 
-  .header {
-    color: #ffffff;
-    background-color: #165ba0;
-    padding: 0px 20px;
-  }
+.header {
+  color: #ffffff;
+  background-color: #165ba0;
+  padding: 0px 20px;
+}
 
+.header img{
+  width: 150px;
+  height: 60px;
+  padding-top: 5px;
+}
+.header .nav-link {
+  text-decoration: none;
+  padding: 20px;
+}
+.header .nav-link:hover {
+  background-color: #367ec6;
+}
 
-  .header img{
-    width: 150px;
-    height: 60px;
-    padding-top: 5px;
-  }
-  .header .nav-link {
-    text-decoration: none;
-    padding: 20px;
-  }
-  .header .nav-link:hover {
-    background-color: #367ec6;
-  }
+section {
+  width: 80%;
+  margin: 0 auto;
+  padding: 100px; 
+  box-sizing: border-box;
+  background-color: #ffffff;
+  height: 100%;
+}
 
-  section {
-    width: 80%;
-    margin: 0 auto;
-    padding: 100px; 
-    box-sizing: border-box;
-    background-color: #ffffff;
-    height: 100%;
-  }
+.game_holder{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
-  .game_holder{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+button{
+  display: flex;
+  align-items: center;
+  padding-inline: 0px;
+  padding-block: 0px;
+}
 
-  button{
-    display: flex;
-    align-items: center;
-    padding-inline: 0px;
-    padding-block: 0px;
-  }
+.container{
+  margin-top: 100px;
+  margin-bottom: 100px;
+}
 
-  .container{
-    margin-top: 100px;
-    margin-bottom: 100px;
-  }
+.footer{
+  color: #ffffff;
+  background-color: #165ba0;
+  display: flex;
+}
 
-  .footer{
-    color: #ffffff;
-    background-color: #165ba0;
-    display: flex;
-  }
-
-  canvas {
-    background: #70c5ce;
-    border: 1px solid #000;
-    display: block;
-    align-self: center;
+canvas {
+  background: #70c5ce;
+  border: 1px solid #000;
+  display: block;
+  align-self: center;
 }
