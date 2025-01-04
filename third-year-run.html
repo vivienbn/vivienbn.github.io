@@ -83,6 +83,24 @@
       DIE: 'pictures/runner_dead.png'
     }
 
+    const GAME_OVER = {
+      SRC: ['pictures/end_screen.png'],
+      TIMER: Date.now(),
+      DELTA: 20,
+      WIDTH: 256,
+      HEIGHT: 384,
+      CURRENT_FRAME: 0,
+      X: (1200 - 256) / 2,
+      y: 500,
+      picture : new Image(),
+      MAX_Y: (500 - 384) / 2,
+      MIN_Y: ((500 - 384) / 2) + 15,
+      MAX_FRAME: 6,
+      STOPPED: false,
+      UP: false,
+      DOWN: false
+    }
+
     const BONUS = {
       A: {src: 'pictures/A_letter.png', value: 500},
       B: {src: 'pictures/B_letter.png', value: 200},
@@ -102,11 +120,11 @@
     }
 
     const GAME_EVENT = {
-      TIMER : {flash: Date.now(), score: Date.now(), life: Date.now()},
-      DELTA: {flash: 20, score: 50, life: 500},
-      VALUE: {flash: 10, score: 0, life: 3},
-      RUNNING: {flash: false, game: false},
-      INIT: {flash: 10, life: 3, score: 0}
+      TIMER : {flash: Date.now(), score: Date.now(), life: Date.now(), blink: Date.now()},
+      DELTA: {flash: 20, score: 50, life: 500, blink: 350},
+      VALUE: {flash: 10, score: 0, life: 3, blink: 0},
+      RUNNING: {flash: false, game: false, blink: false},
+      INIT: {flash: 10, life: 3, score: 0, blink: 0}
     }
 
     const LETTER_POSITION = {
@@ -168,7 +186,7 @@
       gravity: FORCES.GRAVITY,
       saccade: FORCES.SACCADE,
       velocity: FORCES.VELOCITY,
-      place: 1,
+      place: PLACES.UP,
       moveSpeed: 4,
       isJumping: false,
       jumping: false,
@@ -700,10 +718,81 @@
       if(isPlayerGrounded()){
         bg_elements[2].x -= bg_elements[2].speed / 3;
       }
+      if(isPlayerGrounded() && speed === 0){
+        updateGameOver();
+        drawGameOver();
+      }
       if(GAME_EVENT.RUNNING.game){
         requestAnimationFrame(() => animateRunning(GAME_SPEED.START));
       } else {
         requestAnimationFrame(() => animateDeath(updatedSpeed));
+      }
+    }
+
+    function drawGameOver(){
+      ctx.drawImage(GAME_OVER.picture, GAME_OVER.X, GAME_OVER.y, GAME_OVER.WIDTH, GAME_OVER.HEIGHT);
+      ctx.fillStyle = "rgb(238,134,149)";
+      ctx.font = "30px Arial";
+      ctx.fillText(`${GAME_EVENT.VALUE.score}`, GAME_OVER.X + (GAME_OVER.WIDTH / 2), GAME_OVER.y + (GAME_OVER.HEIGHT - 100));
+    }
+
+    function updateGameOver(){
+      if(GAME_OVER.y > GAME_OVER.MAX_Y && !GAME_OVER.STOPPED){
+        GAME_OVER.y -= 6;
+        if(GAME_OVER.y <= GAME_OVER.MAX_Y){
+          GAME_OVER.DOWN = true;
+          GAME_OVER.STOPPED = true;
+          GAME_EVENT.RUNNING.blink = true;
+        }
+      }
+      if(GAME_OVER.STOPPED){
+        animateGameOver();
+      }
+      if(GAME_EVENT.RUNNING.blink){
+        updateBlink();
+        drawBlink();
+      }
+    }
+
+    function animateGameOver(){
+      if(isTimmingOver(GAME_OVER.TIMER, GAME_OVER.DELTA)){
+        GAME_OVER.TIMER = Date.now();
+        if(GAME_OVER.DOWN){
+          GAME_OVER.y ++;
+          if(GAME_OVER.y > GAME_OVER.MIN_Y){
+            GAME_OVER.DOWN = false;
+            GAME_OVER.UP = true;
+          }
+        } else if(GAME_OVER.UP){
+          GAME_OVER.y --;
+          if(GAME_OVER.y < GAME_OVER.MAX_Y){
+            GAME_OVER.DOWN = true;
+            GAME_OVER.UP = false;
+          }
+        }
+      }
+    }
+
+    function drawBlink(){
+      if(GAME_EVENT.VALUE.blink){
+        ctx.fillStyle = 'rgb(74,122,150)';
+        ctx.font = "bold 20px Arial";
+        let text = 'press R to restart'
+        let x = getCenterTextXPosition(0, canvas.width, text)
+        ctx.fillText(text, x, canvas.height - 20);
+      }
+    }
+
+    function getCenterTextXPosition(xstart, size, text){
+      let textLenght = ctx.measureText(text).width;
+      let position = xstart + ((size - textLenght)/2);
+      return position;
+    }
+
+    function updateBlink(){
+      if(isTimmingOver(GAME_EVENT.TIMER.blink, GAME_EVENT.DELTA.blink)){
+        GAME_EVENT.TIMER.blink = Date.now();
+        GAME_EVENT.VALUE.blink = (GAME_EVENT.VALUE.blink + 1) % 2;
       }
     }
 
@@ -715,11 +804,22 @@
       LETTERS.length = 0;
     }
 
+    function resetGameOverInfo(){
+      GAME_OVER.STOPPED = false;
+      GAME_OVER.DOWN = true;
+      GAME_OVER.UP = false;
+      GAME_EVENT.RUNNING.blink = false;
+      GAME_OVER.y = canvas.height;
+    }
+
     function restart(){
       resetScore();
       resetLife();
       resetLetters();
+      resetGameOverInfo();
+      GAME_SPEED.TIMER = Date.now();
       GAME_EVENT.RUNNING.game = true;
+
     }
 
     function startAnimationWhenReady(speed) {
@@ -783,6 +883,8 @@
       preloadFrames(PLAYER_FRAMES.ROLL);
       preloadFrames(PLAYER_FRAMES.RUN);
       preloadFrames(PLAYER_FRAMES.JUMP);
+      preloadFrames(GAME_OVER.SRC);
+      GAME_OVER.picture.src = GAME_OVER.SRC;
       const music = document.getElementById('backgroundMusic');
       music.play().catch(error => {
         console.error("Erreur lors de la lecture de l'audio :", error);
