@@ -58,6 +58,8 @@
       START: 0.8,
       MAX: 2,
       INCREMENT: 0.2,
+      TIMER: Date.now(),
+      DELAY: 20000
     }
 
     const FLY_LEVEL = {
@@ -68,7 +70,7 @@
 
     const ANIMATION_DELAY = {
       ROLL: 500,
-      PLAYER_FRAME: 60,
+      PLAYER_FRAME: 80,
       PLAYER_MOVE: 20,
       LETTER_FRAME: 100,
     }
@@ -76,7 +78,8 @@
     const PLAYER_FRAMES = {
       ROLL: generateFrames('pictures/runner_roll', 3),
       RUN: generateFrames('pictures/runner', 2),
-      JUMP: generateFrames('pictures/runner_jump', 2)
+      JUMP: generateFrames('pictures/runner_jump', 2),
+      DIE: 'pictures/runner_dead.png'
     }
 
     const BONUS = {
@@ -92,11 +95,17 @@
       FX: {src: 'pictures/FX_letter.png', value: -50},
     }
 
+    const HEART = {
+      FULL: 'pictures/heart_full.png',
+      EMPTY: 'pictures/heart_empty.png'
+    }
+
     const GAME_EVENT = {
       TIMER : {flash: Date.now(), score: Date.now()},
-      DELTA: {flash: 500, score: 50},
-      DELAY: {flash:0, score:0},
-      VALUE: {flash: 0, score: 0}
+      DELTA: {flash: 20, score: 50},
+      VALUE: {flash: 10, score: 0, life: 3},
+      RUNNING: {flash: false, game: false},
+      INIT: {flash: 10, life: 3, score: 0}
     }
 
     const LETTER_POSITION = {
@@ -156,7 +165,90 @@
     };
 
     function updateScore(){
+      if(isTimmingOver(GAME_EVENT.TIMER.score, GAME_EVENT.DELTA.score)){
+        GAME_EVENT.TIMER.score = Date.now();
+        GAME_EVENT.VALUE.score ++;
+      }
+    }
 
+    function updateScoreWithValue(value){
+      GAME_EVENT.VALUE.score += value;
+    }
+
+    function drawScore() {
+            ctx.fillStyle = "rgb(51,63,88)";
+            ctx.font = "20px Arial";
+            ctx.fillText(`Score: ${GAME_EVENT.VALUE.score}`, 10, 20);
+            ctx.fillStyle = "white";
+    }
+
+    function checkAnimation(){
+      if(GAME_EVENT.RUNNING.flash){
+        drawFlash();
+        updateFlash();
+      }
+    }
+
+    function isGameOver(){
+      return GAME_EVENT.VALUE.life === 0;
+    }
+
+    function setGameOver(){
+      GAME_EVENT.RUNNING.game = false;
+    }
+
+    function updateFlash(){
+      if(!isTimmingOver(GAME_EVENT.TIMER.flash, GAME_EVENT.DELTA.flash)){
+        return 0;
+      }
+      GAME_EVENT.TIMER.flash = Date.now();
+      if(GAME_EVENT.VALUE.flash > 0){
+        GAME_EVENT.VALUE.flash --;
+      } else if (GAME_EVENT.VALUE.flash == 0) {
+        GAME_EVENT.VALUE.flash = GAME_EVENT.INIT.flash;
+        GAME_EVENT.RUNNING.flash = false;
+      }
+    }
+
+    function drawFlash(){
+      ctx.fillStyle = `rgb(74,122,150, ${GAME_EVENT.VALUE.flash/10})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function updateSpeed(speed){
+      if(isTimmingOver(GAME_SPEED.TIMER, GAME_SPEED.DELAY)){
+        GAME_SPEED.TIMER = Date.now();
+        let newSpeed = speed + GAME_SPEED.INCREMENT;
+        speed = Math.min(GAME_SPEED.MAX, newSpeed);
+      }
+      return speed;
+    }
+
+    function looseLife(){
+      GAME_EVENT.VALUE.life--;
+      if(isGameOver()){
+        setGameOver();
+      }
+    }
+
+    function resetLife(){
+      GAME_EVENT.VALUE.life = GAME_EVENT.INIT.life;
+    }
+
+    function drawLifes(){
+      let initPos = canvas.width - (GAME_EVENT.INIT.life * 50);
+      for(let i = 0; i < GAME_EVENT.INIT.life - GAME_EVENT.VALUE.life; i++){
+        let x = initPos + 50*i;
+        let heart = new Image();
+        heart.src = HEART.EMPTY;
+        ctx.drawImage(heart, x, canvas.height - 42, 32, 32);
+      }
+      for(let i = GAME_EVENT.INIT.life - GAME_EVENT.VALUE.life; i < GAME_EVENT.INIT.life; i++){
+        let x = initPos + 50*i;
+        let heart = new Image();
+        heart.src = HEART.FULL;
+        ctx.drawImage(heart, x, canvas.height - 42, 32, 32);
+      }
     }
 
     function generateFrames(basePath, frameCount) {
@@ -176,9 +268,6 @@
       return object[randomKey];
     }
 
-    function drawScore(){
-
-    }
 
     function updateObstacles(speed){
       if(LETTERS.length == 0){
@@ -219,7 +308,12 @@
       LETTERS.forEach(letter => {
         if(letter.place === player.place && !player.isMoving){
           if(checkSquareCollision(getPlayerHitbox(), getLetterHitbox(letter))){
+            GAME_EVENT.VALUE.score += letter.score;
             letter.scored = true;
+            if(letter.type === LETTER_DATA.TYPE.MALUS){
+              GAME_EVENT.RUNNING.flash = true;
+              looseLife();
+            }
           }
         }
       });
@@ -274,7 +368,6 @@
         letter.picture.src = randomLetter.src;
         letter.score = randomLetter.value;
       }
-      console.log(letter.picture.src);
       return letter;
     }
 
@@ -325,8 +418,6 @@
       }
     }
 
-
-
     function setBgElements() {
       for (let key in BACKGROUND_LAYERS) {
         let layer = BACKGROUND_LAYERS[key];
@@ -340,10 +431,6 @@
         bg_elements.push(element);
       }
     }
-
-
-
-
 
     function jump(){
       if(player.gravity > 0 && player.jumping){
@@ -433,7 +520,6 @@
       } else if(player.isJumping){
         if(player.place == 0){
         ctx.ellipse(player.x + (player.size/2), GROUND_LEVELS.DOWN + player.size, calculateRadius(1.5, GROUND_LEVELS.DOWN), calculateRadius(4.5, GROUND_LEVELS.DOWN), 0, 0, 2 * Math.PI);
-        console.log((player.size*(GROUND_LEVELS.DOWN - player.x))/100);
         }
         if(player.place == 1){
           ctx.ellipse(player.x + (player.size/2), GROUND_LEVELS.UP + player.size,calculateRadius(1.5, GROUND_LEVELS.UP), calculateRadius(4.5, GROUND_LEVELS.UP), 0, 0, 2 * Math.PI);
@@ -449,6 +535,16 @@
         player.frame = 0;
       }
     }
+
+    function isPlayerGrounded(){
+      if (player.place === PLACES.UP){
+        return player.y > GROUND_LEVELS.UP - 1;
+      }
+      if (player.place === PLACES.DOWN){
+        return player.y > GROUND_LEVELS.DOWN - 1;
+      }
+    }
+
 
     function animatePlayer(speed){
       if(!player.isJumping && !player.isRolling){
@@ -468,6 +564,9 @@
       if(bufferActionState != BUFFERED_ACTION.NONE){
         checkBuffer();
       }
+      if(isGameOver()){
+        player.picture.src = PLAYER_FRAMES.DIE;
+      }
       animatePlayerShadow();
       ctx.drawImage(player.picture, player.x, player.y, player.size, player.size);
     }
@@ -476,7 +575,7 @@
       return start + duration < Date.now();
     }
 
-    function animateBackground(speed){
+    function drawRunning(speed){
       ctx.clearRect(0,0, canvas.width, canvas.height);
       bg_elements.forEach(element => {
         if(element.name === BACKGROUND_LAYERS.FRONT.name){
@@ -491,8 +590,46 @@
           element.x = 0;
         }
       });
+    }
+
+    function animateRunning(speed){
+      drawRunning(speed);
       checkCollision();
-      requestAnimationFrame(() => animateBackground(speed));
+      checkAnimation();
+      updateScore();
+      drawScore();
+      drawLifes();
+      let newSpeed = updateSpeed(speed);
+      if(GAME_EVENT.RUNNING.game){
+        requestAnimationFrame(() => animateRunning(newSpeed));
+      } else {
+        requestAnimationFrame(() => animateDeath(speed));
+      }
+    }
+
+    function animateDeath(speed){
+      ctx.clearRect(0,0, canvas.width, canvas.height);
+      let updatedSpeed = speed;
+      if(isPlayerGrounded() && speed > 0){
+        updatedSpeed = Math.max(updatedSpeed - 0.01, 0);
+      }
+      drawRunning(updatedSpeed);
+      checkAnimation();
+      drawLifes();
+      if(isPlayerGrounded()){
+        bg_elements[2].x -= bg_elements[2].speed / 3;
+      }
+      if(GAME_EVENT.RUNNING.game){
+        requestAnimationFrame(() => animateRunning(GAME_SPEED.START));
+      } else {
+        requestAnimationFrame(() => animateDeath(updatedSpeed));
+      }
+    }
+
+    function restart(){
+      GAME_EVENT.VALUE.score = GAME_EVENT.INIT.score;
+      GAME_EVENT.VALUE.life = GAME_EVENT.INIT.life;
+      GAME_EVENT.RUNNING.game = true;
     }
 
     function startAnimationWhenReady(speed) {
@@ -503,7 +640,8 @@
           loadedImages++;
           // Démarrer l'animation seulement lorsque toutes les images sont chargées
           if (loadedImages === bg_elements.length) {
-            animateBackground(speed);
+            GAME_EVENT.RUNNING.game = true;
+            animateRunning(speed);
           }
         };
       });
@@ -574,35 +712,42 @@
     
 
     window.addEventListener("keydown", (e) => {
-            if (e.which === 90) {
-              if(actionAvaible()){
-                setJump();
-              } else {
-                bufferActionState = BUFFERED_ACTION.JUMP;
-              }
-            }
-            if (e.which === 83 ) {
-              if(actionAvaible()){
-                setRoll();
-              } else {
-                bufferActionState = BUFFERED_ACTION.ROLL;
-              }
-            }
-            if(e.which === 68 && player.place == PLACES.UP){
-              if(actionAvaible()){
-                setMove(PLACES.DOWN);
-              } else {
-                bufferActionState = BUFFERED_ACTION.MOVE_DOWN;
-              }
-            }
-            if(e.which === 81 && player.place == PLACES.DOWN){
-              if(actionAvaible()){
-                setMove(PLACES.UP);
-              } else {
-                bufferActionState = BUFFERED_ACTION.MOVE_UP;
-              }
-            }
-        });
+      if(!isGameOver()){
+        if (e.which === 90) {
+          if(actionAvaible()){
+            setJump();
+          } else {
+            bufferActionState = BUFFERED_ACTION.JUMP;
+          }
+        }
+        if (e.which === 83 ) {
+          if(actionAvaible()){
+            setRoll();
+          } else {
+            bufferActionState = BUFFERED_ACTION.ROLL;
+          }
+        }
+        if(e.which === 68 && player.place == PLACES.UP){
+          if(actionAvaible()){
+            setMove(PLACES.DOWN);
+          } else {
+            bufferActionState = BUFFERED_ACTION.MOVE_DOWN;
+          }
+        }
+        if(e.which === 81 && player.place == PLACES.DOWN){
+          if(actionAvaible()){
+            setMove(PLACES.UP);
+          } else {
+            bufferActionState = BUFFERED_ACTION.MOVE_UP;
+          }
+        }
+      }
+      if(isGameOver()){
+        if(e.which === 82){
+          restart();
+        }
+      }
+    });
 
   </script>
 </body>
