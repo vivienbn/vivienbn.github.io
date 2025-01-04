@@ -79,17 +79,24 @@
       JUMP: generateFrames('pictures/runner_jump', 2)
     }
 
-    const BONUS_SRC = {
-      A: 'pictures/A_letter.png',
-      B: 'pictures/B_letter.png',
-      C: 'pictures/C_letter.png',
-      D: 'pictures/D_letter.png',
-      E: 'pictures/E_letter.png',
+    const BONUS = {
+      A: {src: 'pictures/A_letter.png', value: 500},
+      B: {src: 'pictures/B_letter.png', value: 200},
+      C: {src: 'pictures/C_letter.png', value: 100},
+      D: {src: 'pictures/D_letter.png', value: 50},
+      E: {src: 'pictures/E_letter.png', value: 25},
     }
 
-    const MALUS_SRC = {
-      F: 'pictures/F_letter.png',
-      FX: 'pictures/FX_letter.png'
+    const MALUS = {
+      F: {src: 'pictures/F_letter.png', value: -200},
+      FX: {src: 'pictures/FX_letter.png', value: -50},
+    }
+
+    const GAME_EVENT = {
+      TIMER : {flash: Date.now(), score: Date.now()},
+      DELTA: {flash: 500, score: 50},
+      DELAY: {flash:0, score:0},
+      VALUE: {flash: 0, score: 0}
     }
 
     const LETTER_POSITION = {
@@ -148,6 +155,10 @@
       isRolling: false,
     };
 
+    function updateScore(){
+
+    }
+
     function generateFrames(basePath, frameCount) {
       return Array.from({ length: frameCount }, (_, i) => `${basePath}${i + 1}.png`);
     }
@@ -163,6 +174,10 @@
       const keys = Object.keys(object);
       const randomKey = keys[Math.floor(Math.random() * keys.length)];
       return object[randomKey];
+    }
+
+    function drawScore(){
+
     }
 
     function updateObstacles(speed){
@@ -250,12 +265,14 @@
         scored: false
       };
       if(type === LETTER_DATA.TYPE.BONUS){
-        letter.picture.src = getRandomObjectValue(BONUS_SRC);
-        console.log('bonus');
+        let randomLetter = getRandomObjectValue(BONUS)
+        letter.picture.src = randomLetter.src;
+        letter.score = randomLetter.value;
       }
       if(type === LETTER_DATA.TYPE.MALUS){
-        letter.picture.src = getRandomObjectValue(MALUS_SRC);
-        console.log('malus');
+        let randomLetter = getRandomObjectValue(MALUS)
+        letter.picture.src = randomLetter.src;
+        letter.score = randomLetter.value;
       }
       console.log(letter.picture.src);
       return letter;
@@ -534,8 +551,25 @@
 
     window.onload = ()=> {
       setBgElements();
+      preloadFrames(PLAYER_FRAMES.ROLL);
+      preloadFrames(PLAYER_FRAMES.RUN);
+      preloadFrames(PLAYER_FRAMES.JUMP);
       startAnimationWhenReady(GAME_SPEED.START);
     }
+
+    function preloadFrames(animation) {
+      const promises = animation.map(src => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.src = src;
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(`Erreur lors du chargement de l'image : ${src}`);
+        });
+      });
+
+      return Promise.all(promises); // Retourne une promesse résolue lorsque toutes les images sont chargées
+    }
+
 
     
 
