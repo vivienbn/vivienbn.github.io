@@ -55,8 +55,8 @@
     }
 
     const GAME_SPEED = {
-      START: 0.8,
-      MAX: 2,
+      START: 1.2,
+      MAX: 3,
       INCREMENT: 0.2,
       TIMER: Date.now(),
       DELAY: 20000
@@ -70,7 +70,7 @@
 
     const ANIMATION_DELAY = {
       ROLL: 500,
-      PLAYER_FRAME: 80,
+      PLAYER_FRAME: 140,
       PLAYER_MOVE: 20,
       LETTER_FRAME: 100,
     }
@@ -101,8 +101,8 @@
     }
 
     const GAME_EVENT = {
-      TIMER : {flash: Date.now(), score: Date.now()},
-      DELTA: {flash: 20, score: 50},
+      TIMER : {flash: Date.now(), score: Date.now(), life: Date.now()},
+      DELTA: {flash: 20, score: 50, life: 500},
       VALUE: {flash: 10, score: 0, life: 3},
       RUNNING: {flash: false, game: false},
       INIT: {flash: 10, life: 3, score: 0}
@@ -133,9 +133,21 @@
       VARIATION: 1
     }
 
+    const OBSTACLE_TYPES = [
+      { fn: generateForceMove1, p: 0.15 },
+      { fn: generateForceMove2, p: 0.15 },
+      { fn: generateForceJump, p: 0.15 },
+      { fn: generateForceRoll1, p: 0.1 },
+      { fn: generateForceRoll2, p: 0.1 },
+      { fn: generateJumpOrRoll, p: 0.15 },
+      { fn: generateRandomMalus, p: 0.1 },
+      { fn: generateRandomBonus, p: 0.1 },
+    ];
+
+
     const FORCES = {
       VELOCITY: 0,
-      GRAVITY:0.3,
+      GRAVITY:0.2,
       SACCADE: 0.01,
       LIFT: -7
     }
@@ -163,6 +175,18 @@
       isMoving: false,
       isRolling: false,
     };
+
+    function selectRandomFunction() {
+      const random = Math.random();
+      let cumulativeProbability = 0;
+
+      for (const fctn of OBSTACLE_TYPES) {
+        cumulativeProbability += fctn.p;
+        if (random < cumulativeProbability) {
+          return fctn.fn;
+        }
+      }
+    }
 
     function updateScore(){
       if(isTimmingOver(GAME_EVENT.TIMER.score, GAME_EVENT.DELTA.score)){
@@ -225,7 +249,10 @@
     }
 
     function looseLife(){
-      GAME_EVENT.VALUE.life--;
+      if(isTimmingOver(GAME_EVENT.TIMER.life, GAME_EVENT.DELTA.life)){
+        GAME_EVENT.TIMER.life = Date.now();
+        GAME_EVENT.VALUE.life--;
+      }
       if(isGameOver()){
         setGameOver();
       }
@@ -273,6 +300,9 @@
       if(LETTERS.length == 0){
         spawnObstacle();
       }
+      if(LETTERS[LETTERS.length - 1].x < canvas.width / 2){
+        spawnObstacle();
+      }
       LETTERS.forEach(obstacle => {
           obstacle.x -= speed*2.5;
         });
@@ -287,10 +317,60 @@
     }
 
     function spawnObstacle(){
-      let layer = getRandomObjectValue(PLACES);
-      let type = getRandomObjectValue(LETTER_DATA.TYPE);
-      let dim = 1;
-      spawnObstacleGroup(layer, type, dim, dim);
+      const randomSpawn = selectRandomFunction();
+      randomSpawn();
+    }
+
+    function generateForceMove1(){
+      let randomLayer = getRandomObjectValue(PLACES);
+      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN, canvas.width));
+      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width));
+      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION*2, canvas.width));
+      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MAX, canvas.width));
+    }
+
+    function generateForceMove2(){
+      let randomLayer = getRandomObjectValue(PLACES);
+      let randomFlyLevel = generateRandomNumber(FLY_LEVEL.MIN, FLY_LEVEL.MAX, FLY_LEVEL.VARIATION);
+      for(let i = 0; i < 4; i++){
+        LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, randomFlyLevel, canvas.width + (i* LETTER_DATA.SIZE) + 10));
+      }
+    }
+
+    function generateForceJump(){
+      LETTERS.push(generateLetter(PLACES.UP, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN, canvas.width));
+      LETTERS.push(generateLetter(PLACES.DOWN, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN, canvas.width));
+    }
+
+    function generateForceRoll1(){
+      LETTERS.push(generateLetter(PLACES.UP, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width));
+      LETTERS.push(generateLetter(PLACES.DOWN, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width));
+      LETTERS.push(generateLetter(PLACES.UP, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION*2, canvas.width));
+      LETTERS.push(generateLetter(PLACES.DOWN, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION*2, canvas.width));
+    }
+
+    function generateForceRoll2(){
+      for(let i = 0; i < 2; i++){
+        LETTERS.push(generateLetter(PLACES.UP, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width+ (i* LETTER_DATA.SIZE) + 10));
+        LETTERS.push(generateLetter(PLACES.DOWN, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width+ (i* LETTER_DATA.SIZE) + 10));
+      }
+    }
+
+    function generateJumpOrRoll(){
+      LETTERS.push(generateLetter(PLACES.UP, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width));
+      LETTERS.push(generateLetter(PLACES.DOWN, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width));
+    }
+
+    function generateRandomMalus(){
+      let randomLayer = getRandomObjectValue(PLACES);
+      let randomFlyLevel = generateRandomNumber(FLY_LEVEL.MIN, FLY_LEVEL.MAX, FLY_LEVEL.VARIATION);
+      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, randomFlyLevel, canvas.width));
+    }
+
+    function generateRandomBonus(){
+      let randomLayer = getRandomObjectValue(PLACES);
+      let randomFlyLevel = generateRandomNumber(FLY_LEVEL.MIN, FLY_LEVEL.MAX, FLY_LEVEL.VARIATION);
+      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.BONUS, randomFlyLevel, canvas.width));
     }
 
     function getGroundLevel(position){
@@ -343,9 +423,9 @@
       return hitbox;
     }
 
-    function generateLetter(layer, type, flyLevel){
+    function generateLetter(layer, type, flyLevel, xvalue){
       let letter = {
-        x: canvas.width,
+        x: xvalue,
         y: getGroundLevel(layer),
         size: LETTER_DATA.SIZE,
         place: layer,
@@ -375,7 +455,7 @@
       let dim = height * width;
       if(dim == 1){
         let flylevel = generateRandomNumber(FLY_LEVEL.MIN, FLY_LEVEL.MAX, FLY_LEVEL.VARIATION);
-        LETTERS.push(generateLetter(layer, type, flylevel));
+        LETTERS.push(generateLetter(layer, type, flylevel, canvas.width));
       }
     }
 
@@ -626,9 +706,18 @@
       }
     }
 
-    function restart(){
+    function resetScore(){
       GAME_EVENT.VALUE.score = GAME_EVENT.INIT.score;
-      GAME_EVENT.VALUE.life = GAME_EVENT.INIT.life;
+    }
+
+    function resetLetters(){
+      LETTERS.length = 0;
+    }
+
+    function restart(){
+      resetScore();
+      resetLife();
+      resetLetters();
       GAME_EVENT.RUNNING.game = true;
     }
 
@@ -649,6 +738,7 @@
 
     function checkBuffer(){
       if(actionAvaible()){
+        checkCollision();
         switch(bufferActionState){
           case BUFFERED_ACTION.JUMP:
             setJump();
