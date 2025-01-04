@@ -155,12 +155,9 @@
     const OBSTACLE_TYPES = [
       { fn: generateForceMove1, p: 0.15 },
       { fn: generateForceMove2, p: 0.15 },
-      { fn: generateForceJump, p: 0.15 },
-      { fn: generateForceRoll1, p: 0.1 },
-      { fn: generateForceRoll2, p: 0.1 },
-      { fn: generateJumpOrRoll, p: 0.15 },
-      { fn: generateRandomMalus, p: 0.1 },
-      { fn: generateRandomBonus, p: 0.1 },
+      { fn: generateForceJump, p: 0.25 },
+      { fn: generateJumpOrRoll, p: 0.25 },
+      { fn: generateRandomBonus, p: 0.2 },
     ];
 
 
@@ -342,10 +339,13 @@
 
     function generateForceMove1(){
       let randomLayer = getRandomObjectValue(PLACES);
-      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN, canvas.width));
-      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width));
-      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION*2, canvas.width));
-      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MAX, canvas.width));
+      let randomNumber = generateRandomNumber(1, 4, 1);
+      for(let i = 0; i < randomNumber; i++){
+        LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN, canvas.width + (70 * i)));
+        LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width + (70 * i)));
+        LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION*2, canvas.width + (70 * i)));
+        LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MAX, canvas.width + (70 * i)));
+      }
     }
 
     function generateForceMove2(){
@@ -361,29 +361,9 @@
       LETTERS.push(generateLetter(PLACES.DOWN, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN, canvas.width));
     }
 
-    function generateForceRoll1(){
-      LETTERS.push(generateLetter(PLACES.UP, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width));
-      LETTERS.push(generateLetter(PLACES.DOWN, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width));
-      LETTERS.push(generateLetter(PLACES.UP, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION*2, canvas.width));
-      LETTERS.push(generateLetter(PLACES.DOWN, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION*2, canvas.width));
-    }
-
-    function generateForceRoll2(){
-      for(let i = 0; i < 2; i++){
-        LETTERS.push(generateLetter(PLACES.UP, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width+ (i* LETTER_DATA.SIZE) + 10));
-        LETTERS.push(generateLetter(PLACES.DOWN, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width+ (i* LETTER_DATA.SIZE) + 10));
-      }
-    }
-
     function generateJumpOrRoll(){
       LETTERS.push(generateLetter(PLACES.UP, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width));
       LETTERS.push(generateLetter(PLACES.DOWN, LETTER_DATA.TYPE.MALUS, FLY_LEVEL.MIN + FLY_LEVEL.VARIATION, canvas.width));
-    }
-
-    function generateRandomMalus(){
-      let randomLayer = getRandomObjectValue(PLACES);
-      let randomFlyLevel = generateRandomNumber(FLY_LEVEL.MIN, FLY_LEVEL.MAX, FLY_LEVEL.VARIATION);
-      LETTERS.push(generateLetter(randomLayer, LETTER_DATA.TYPE.MALUS, randomFlyLevel, canvas.width));
     }
 
     function generateRandomBonus(){
