@@ -20,6 +20,7 @@
         <section class="game_holder">
             <canvas id="gameCanvas"></canvas>
         </section>
+        <audio id="backgroundMusic" src="sound/Moon.mp3" loop></audio>
     </main>
 
   <script>
@@ -782,6 +783,10 @@
       preloadFrames(PLAYER_FRAMES.ROLL);
       preloadFrames(PLAYER_FRAMES.RUN);
       preloadFrames(PLAYER_FRAMES.JUMP);
+      const music = document.getElementById('backgroundMusic');
+      music.play().catch(error => {
+        console.error("Erreur lors de la lecture de l'audio :", error);
+      });
       startAnimationWhenReady(GAME_SPEED.START);
     }
 
