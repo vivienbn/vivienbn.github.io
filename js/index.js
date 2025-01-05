@@ -1,5 +1,11 @@
 import * as Cookies from "../scripts/cookies.js";
 
+const LINK = {
+    PJ: {DOM: document.getElementById("PJlink"), HREF: './flappy-vivien.html'},
+    TYR: {DOM: document.getElementById("TYRlink"), HREF: './third-year-run.html'},
+    MS: {DOM: document.getElementById("MSlink"), HREF: './mathisnake.html'}
+}
+
 function updateScores() {
     // Récupérer les scores depuis les cookies
     const scorePJ = Cookies.getCookie("flappy-score") || 0;
@@ -12,4 +18,21 @@ function updateScores() {
     document.getElementById("scoreMS").innerText = scoreMS;
 }
 
-document.addEventListener("DOMContentLoaded", updateScores);
+function setLink(object){
+    object.DOM.onclick = ()=>{
+        window.location.href = object.HREF;
+    }
+}
+
+function setLinks(){
+    setLink(LINK.PJ);
+    setLink(LINK.TYR);
+    setLink(LINK.MS);
+}
+
+function loadDom(){
+    updateScores();
+    setLinks();
+}
+
+document.addEventListener("DOMContentLoaded", loadDom);

@@ -20,10 +20,11 @@
         <section class="game_holder">
             <canvas id="gameCanvas"></canvas>
         </section>
-        <audio id="backgroundMusic" src="sound/Moon.mp3" loop></audio>
     </main>
 
-  <script>
+  <script type="module">
+    import * as Cookies from "../scripts/cookies.js";
+
     // Configuration du canvas
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -40,6 +41,8 @@
         FRONT: { speed: 4, name: 'Front', src: 'pictures/bg_front.png'}
     };
 
+
+    const MUSIC = new Audio();
     const bg_elements = [];
     const LETTERS = [];
 
@@ -122,7 +125,7 @@
     const GAME_EVENT = {
       TIMER : {flash: Date.now(), score: Date.now(), life: Date.now(), blink: Date.now()},
       DELTA: {flash: 20, score: 50, life: 500, blink: 350},
-      VALUE: {flash: 10, score: 0, life: 3, blink: 0},
+      VALUE: {flash: 10, score: 0, life: 3, blink: 0, record: 0},
       RUNNING: {flash: false, game: false, blink: false},
       INIT: {flash: 10, life: 3, score: 0, blink: 0}
     }
@@ -219,7 +222,7 @@
             ctx.fillStyle = "rgb(51,63,88)";
             ctx.font = "20px Arial";
             ctx.fillText(`Score: ${GAME_EVENT.VALUE.score}`, 10, 20);
-            ctx.fillStyle = "white";
+            ctx.fillText(`Record: ${GAME_EVENT.VALUE.record}`, 10, 40);
     }
 
     function checkAnimation(){
@@ -682,6 +685,7 @@
       if(GAME_EVENT.RUNNING.game){
         requestAnimationFrame(() => animateRunning(newSpeed));
       } else {
+        refreshHighscore();
         requestAnimationFrame(() => animateDeath(speed));
       }
     }
@@ -711,9 +715,10 @@
 
     function drawGameOver(){
       ctx.drawImage(GAME_OVER.picture, GAME_OVER.X, GAME_OVER.y, GAME_OVER.WIDTH, GAME_OVER.HEIGHT);
+      let text = `score : ${GAME_EVENT.VALUE.score}`;
       ctx.fillStyle = "rgb(238,134,149)";
       ctx.font = "30px Arial";
-      ctx.fillText(`${GAME_EVENT.VALUE.score}`, GAME_OVER.X + (GAME_OVER.WIDTH / 2), GAME_OVER.y + (GAME_OVER.HEIGHT - 100));
+      ctx.fillText(text, getCenterTextXPosition(0, canvas.width, text), GAME_OVER.y + (GAME_OVER.HEIGHT - 100));
     }
 
     function updateGameOver(){
@@ -865,12 +870,12 @@
       preloadFrames(PLAYER_FRAMES.JUMP);
       preloadFrames(GAME_OVER.SRC);
       GAME_OVER.picture.src = GAME_OVER.SRC;
-      const music = document.getElementById('backgroundMusic');
-      music.play().catch(error => {
-        console.error("Erreur lors de la lecture de l'audio :", error);
-      });
       startAnimationWhenReady(GAME_SPEED.START);
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      startMusic();
+    });
 
     function preloadFrames(animation) {
       const promises = animation.map(src => {
@@ -882,7 +887,26 @@
         });
       });
 
-      return Promise.all(promises); // Retourne une promesse résolue lorsque toutes les images sont chargées
+      return Promise.all(promises);
+    }
+
+    function startMusic(){
+      MUSIC.loop = true;
+      MUSIC.autoplay = true;
+      MUSIC.volume = 0.3;
+      MUSIC.src = 'sound/Moon.mp3'
+      MUSIC.addEventListener("loadeddata", () => MUSIC.play());
+      MUSIC.load();
+    }
+
+    function refreshHighscore(){
+      GAME_EVENT.VALUE.record = Cookies.getOrCreateCookie("snake-score", GAME_EVENT.VALUE.record, 365);
+      if(GAME_EVENT.VALUE.score > GAME_EVENT.VALUE.record){
+        GAME_EVENT.VALUE.record = GAME_EVENT.VALUE.score;
+        Cookies.setCookie("third-year-run-score", GAME_EVENT.VALUE.score, 365);
+        return true;
+      }
+      return false;
     }
 
 
