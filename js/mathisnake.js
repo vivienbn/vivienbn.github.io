@@ -5,6 +5,11 @@ const ctx = canvas.getContext("2d");
 
 // Configuration du jeu
 const boxSize = 20; // Taille des cases
+const COLORS = {
+    SNAKE: 'rgb(49,221,11)',
+    BACKGROUND: 'black',
+    FRUIT: 'red'
+}
 let snake = [{ x: 10, y: 10 }]; // Position initiale du serpent
 let direction = null;
 let food = { x: Math.floor(Math.random() * 20), y: Math.floor(Math.random() * 20) };
@@ -24,8 +29,12 @@ function drawGame() {
     // Efface l'écran
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // dessiner le background
+    ctx.fillStyle = COLORS.BACKGROUND;
+    ctx.fillRect(0,0, canvas.width, canvas.height);
+
     // Dessiner la nourriture
-    ctx.fillStyle = "red";
+    ctx.fillStyle = COLORS.FRUIT;
     ctx.fillRect(food.x * boxSize, food.y * boxSize, boxSize, boxSize);
 
     // Déplacer le serpent
@@ -47,9 +56,9 @@ function drawGame() {
     }
 
     // Dessiner le serpent
-    ctx.fillStyle = "lime";
+    ctx.fillStyle = COLORS.SNAKE;
     snake.forEach((segment) => {
-        ctx.fillRect(segment.x * boxSize, segment.y * boxSize, boxSize, boxSize);
+        ctx.fillRect(segment.x * boxSize, segment.y * boxSize, boxSize - 1, boxSize - 1);
     });
 
     // Collision avec les murs ou le serpent
