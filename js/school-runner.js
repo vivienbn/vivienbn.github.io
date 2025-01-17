@@ -1,29 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flappy Bird</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link type="text/css" rel="stylesheet" href="css/style.css">
-</head>
-<body>
-    <header class="header d-flex justify-content-between align-items-center">
-        <a href="index.html"><img src="./pictures/logo.png" class="h4 mb-0"> </a>
-        <nav>
-        <a href="flappy-vivien.html" class="nav-link d-inline-block">Flappy Vivien</a>
-        <a href="third-year-run.html" class="nav-link d-inline-block">School Runner</a>
-        <a href="mathisnake.html" class="nav-link d-inline-block">Mathisnake</a>
-        </nav>
-    </header>
-    <main>
-        <section class="game_holder">
-            <canvas id="gameCanvas"></canvas>
-        </section>
-    </main>
-
-  <script type="module">
-    import * as Cookies from "../scripts/cookies.js";
+import * as Cookies from "../scripts/cookies.js";
 
     // Configuration du canvas
     const canvas = document.getElementById('gameCanvas');
@@ -949,15 +924,3 @@
         }
       }
     });
-
-  </script>
-</body>
-<footer>
-  <div class="footer d-flex flex-column justify-content-center align-items-center py-3">
-    <h6>Application Web réalisée par</h6>
-    <h6>BERNARD-NICOD Vivien</h6>
-    <h6>MORRA-FISCHER Mathis</h6>
-    <h6>&copy;2024 INSA Toulouse</h6>
-</div>
-</footer>
-</html>

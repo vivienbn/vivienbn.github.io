@@ -4,13 +4,13 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 // Configuration du jeu
-const boxSize = 20; // Taille des cases
+const boxSize = 20;
 const COLORS = {
     SNAKE: 'rgb(49,221,11)',
     BACKGROUND: 'black',
     FRUIT: 'red'
 }
-let snake = [{ x: 10, y: 10 }]; // Position initiale du serpent
+let snake = [{ x: 10, y: 10 }]; // Position initiale du serpent au centre de la grille
 let direction = null;
 let food = { x: Math.floor(Math.random() * 20), y: Math.floor(Math.random() * 20) };
 let score = 0;

@@ -1,8 +1,8 @@
 import * as Cookies from "../scripts/cookies.js";
 
 const LINK = {
-    PJ: {DOM: document.getElementById("PJlink"), HREF: './flappy-vivien.html'},
-    TYR: {DOM: document.getElementById("TYRlink"), HREF: './third-year-run.html'},
+    PJ: {DOM: document.getElementById("PJlink"), HREF: './planex-jump.html'},
+    TYR: {DOM: document.getElementById("TYRlink"), HREF: './school-runner.html'},
     MS: {DOM: document.getElementById("MSlink"), HREF: './mathisnake.html'}
 }
 
