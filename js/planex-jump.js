@@ -1,4 +1,4 @@
-import * as Cookies from "../scripts/cookies.js";
+import * as Cookies from "cookies.js";
 const MAX_BIRD_SIZE = 70;
 const MIN_BIRD_SIZE = 40;
 const canvas = document.getElementById("gameCanvas");
