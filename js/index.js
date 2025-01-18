@@ -1,4 +1,4 @@
-import * as Cookies from "../scripts/cookies.js";
+import * as Cookies from "./cookies.js";
 
 const LINK = {
     PJ: {DOM: document.getElementById("PJlink"), HREF: './planex-jump.html'},

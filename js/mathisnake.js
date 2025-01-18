@@ -1,4 +1,4 @@
-import * as Cookies from "cookies.js";
+import * as Cookies from "./cookies.js";
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");

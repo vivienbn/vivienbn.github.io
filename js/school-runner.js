@@ -1,4 +1,4 @@
-import * as Cookies from "cookies.js";
+import * as Cookies from "./cookies.js";
 
     // Configuration du canvas
     const canvas = document.getElementById('gameCanvas');
